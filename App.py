@@ -1,98 +1,87 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-import pandas as pd
 import time
 
-# --- Style & Theme ---
-st.set_page_config(page_title="Tournament Team Check-In", layout="wide")
-
+# --- Style ---
+st.set_page_config(page_title="Tournament Reveal", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #013220; color: white; }
-    .main-title { color: #ce933e; text-align: center; font-size: 3rem; font-weight: bold; }
-    .team-card { 
-        background-color: #024f32; padding: 30px; border-radius: 15px; 
-        border: 2px solid #ce933e; text-align: center; 
-    }
     .gold { color: #ce933e !important; }
-    div.stButton > button {
-        width: 100%; height: 3.5em; background-color: #ce933e; 
-        color: #013220; font-weight: bold; border-radius: 8px;
+    .reveal-card {
+        background-color: #024f32; padding: 20px; border-radius: 15px;
+        border: 2px solid #ce933e; text-align: center;
     }
-    /* Simple table styling for the dashboard */
-    .styled-table { margin-left: auto; margin-right: auto; border-collapse: collapse; width: 80%; }
+    div.stButton > button {
+        background-color: #ce933e; color: #013220; font-weight: bold;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Database Connection ---
-# Make sure your Google Sheet has headers: team_id, player_name
-conn = st.connection("gsheets", type=GSheetsConnection)
+# --- THE DATA (Hard-coded) ---
+ALL_PLAYERS = sorted([
+    "Stacey Isom", "Steve Mann", "Danny Mann", "Tom Mann", "Andy Mann", "Kevin Serrett", "Matt Paterson",
+    "Phillip Harris", "Wes Patterson", "Andrew Kelley", "Scott Tidmore", "David Hill", "Monty Davis", "Steve Mann (Other)",
+    "Chase Tidmore", "Geoffrey Mann", "Jake Jolly", "Jake Mann", "Lake Graham", "Mark Caldwell", "Nolan Luda", 
+    "Trey Hamilton", "Wes Thornhill", "Chris Mann", "Brandon Tidmore", "Dalton Ricroft", "Jon Shepherd", 
+    "Kyle Powell", "Josh Mann", "Kyle Young", "Slayde Guess", "Zach Davis", "Blake Jones", "Jordan Brown", 
+    "Braden Blagburn", "Grayson Suggs", "Evan Francis", "Hunter McEwen", "Taylor Kyser", "Andrew Hiss", 
+    "Camron Mann", "Dakota Creel", "Eastan Anderson", "Jack Bishop", "Ryan Davis", "Placeholder 1"
+])
 
-def get_live_data():
-    return conn.read(ttl=0)
+# --- PERMANENT STORAGE (Live Session) ---
+# This keeps data in the server's memory while it's running
+if 'registration_db' not in st.session_state:
+    # Dictionary of {team_id: [list_of_names]}
+    st.session_state.registration_db = {str(i): [] for i in range(1, 21)}
 
-# --- URL Routing ---
+# --- URL Logic ---
 params = st.query_params
 team_id = params.get("team_id")
 is_admin = "admin" in params
 
-# --- 1. THE BIG SCREEN (Admin Dashboard) ---
+# --- 1. ADMIN DASHBOARD ---
 if is_admin:
-    st.markdown("<h1 class='main-title'>🏆 OFFICIAL TOURNAMENT BOARD</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;' class='gold'>🏆 LIVE TOURNAMENT BOARD</h1>", unsafe_allow_html=True)
     
-    data = get_live_data()
-    
-    # We create a display for 20 teams (40 players total, 2 per team)
-    teams_list = []
+    # Create columns for a "Scoreboard" look
+    cols = st.columns(2)
     for i in range(1, 21):
-        members = data[data['team_id'] == str(i)]['player_name'].tolist()
-        # Fill slots with "Waiting..." if empty
-        p1 = members[0] if len(members) > 0 else "⏳ Waiting..."
-        p2 = members[1] if len(members) > 1 else "⏳ Waiting..."
-        teams_list.append({"Team": f"Team {i}", "Player 1": p1, "Player 2": p2})
+        col_idx = 0 if i <= 10 else 1
+        with cols[col_idx]:
+            names = st.session_state.registration_db[str(i)]
+            p1 = names[0] if len(names) > 0 else "---"
+            p2 = names[1] if len(names) > 1 else "---"
+            st.markdown(f"**Team {i}:** {p1} & {p2}")
     
-    st.table(pd.DataFrame(teams_list))
-    
-    # Auto-refresh helper
-    time.sleep(5)
+    time.sleep(2) # Auto-refresh effect
     st.rerun()
 
-# --- 2. THE PLAYER CHECK-IN ---
+# --- 2. PLAYER CHECK-IN ---
 elif team_id:
-    st.markdown(f"<h1 class='main-title'>Welcome to Team {team_id}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 class='gold'>Team {team_id} Registration</h1>", unsafe_allow_html=True)
     
-    data = get_live_data()
-    # Count how many players are already on this specific team
-    current_team = data[data['team_id'] == str(team_id)]
+    current_team = st.session_state.registration_db.get(str(team_id), [])
     
     if len(current_team) >= 2:
-        st.markdown(f"""
-            <div class="team-card">
-                <h2 class="gold">Team {team_id} is Full!</h2>
-                <p>Confirmed Players: <b>{", ".join(current_team['player_name'].tolist())}</b></p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.success(f"Team {team_id} is locked! Players: {', '.join(current_team)}")
     else:
-        with st.form("entry_form"):
-            st.markdown("<p style='text-align:center;'>Enter your name to join your teammate.</p>", unsafe_allow_html=True)
-            name = st.text_input("Full Name", placeholder="e.g. Braden Blagburn")
-            submit = st.form_submit_button("LOCK IN MY TEAM")
-            
-            if submit:
-                if name.strip() == "":
-                    st.error("Please enter your name.")
+        # Player picks their name from the pre-set list
+        name = st.selectbox("Select your name to join this team:", ["Select..."] + ALL_PLAYERS)
+        
+        if st.button("LOCK IN ENTRY"):
+            if name != "Select...":
+                # Check if player is already on another team
+                already_reg = any(name in names for names in st.session_state.registration_db.values())
+                
+                if already_reg:
+                    st.error("This name has already been registered!")
                 else:
-                    # Write to Google Sheets
-                    new_entry = pd.DataFrame([{"team_id": str(team_id), "player_name": name}])
-                    updated_df = pd.concat([data, new_entry], ignore_index=True)
-                    conn.update(data=updated_df)
-                    
+                    st.session_state.registration_db[str(team_id)].append(name)
                     st.balloons()
-                    st.success(f"Registered! Look at the main screen, {name}!")
+                    st.success(f"Welcome, {name}! You are confirmed for Team {team_id}.")
                     time.sleep(2)
                     st.rerun()
 
-# --- 3. FALLBACK ---
 else:
-    st.markdown("<h1 class='main-title'>⛳ Scanner Active</h1>", unsafe_allow_html=True)
-    st.info("Please scan the QR code found inside your team envelope.")
+    st.title("⛳ Welcome")
+    st.write("Scan your envelope QR to begin.")
