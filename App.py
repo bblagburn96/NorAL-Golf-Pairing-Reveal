@@ -3,52 +3,49 @@ import random
 
 st.set_page_config(page_title="NorAL Golf Reveal", layout="wide")
 
-# --- ACTUAL TOURNAMENT ROSTER ---
-team_roster = {
-    "1": "Stacey Isom & Steve Mann",
-    "2": "Danny Mann & Tom Mann",
-    "3": "Andy Mann & Kevin Serrett",
-    "4": "Matt Paterson & Phillip Harris",
-    "5": "Wes Patterson & Andrew Kelley",
-    "6": "Scott Tidmore & David Hill",
-    "7": "Monty Davis & Chase Tidmore",
-    "8": "Geoffrey Mann & Jake Jolly",
-    "9": "Jake Mann & Lake Graham",
-    "10": "Mark Caldwell & Nolan Luda",
-    "11": "Trey Hamilton & Wes Thornhill",
-    "12": "Chris Mann & Brandon Tidmore",
-    "13": "Dalton Ricroft & Jon Shepherd",
-    "14": "Kyle Powell & Josh Mann",
-    "15": "Kyle Young & Slayde Guess",
-    "16": "Zach Davis & Blake Jones",
-    "17": "Jordan Brown & Braden Blagburn",
-    "18": "Grayson Suggs & Evan Francis",
-    "19": "Hunter McEwen & Taylor Kyser",
-    "20": "Andrew Hiss & Camron Mann",
-    "21": "Dakota Creel & Easton Anderson",
-    "22": "Jack Bishop & Ryan Davis",
-    "23": "Stacey Isom (2) & Steve Mann (2)",
-    "24": "Placeholder 1 & Placeholder 2",
-    "25": "Placeholder 3 & TBD"
-}
+# --- THE ROSTER (Individual Players) ---
+players = [
+    "Stacey Isom", "Steve Mann", "Danny Mann", "Tom Mann", "Andy Mann", 
+    "Kevin Serrett", "Matt Paterson", "Phillip Harris", "Wes Patterson", 
+    "Andrew Kelley", "Scott Tidmore", "David Hill", "Monty Davis", 
+    "Chase Tidmore", "Geoffrey Mann", "Jake Jolly", "Jake Mann", 
+    "Lake Graham", "Mark Caldwell", "Nolan Luda", "Trey Hamilton", 
+    "Wes Thornhill", "Chris Mann", "Brandon Tidmore", "Dalton Ricroft", 
+    "Jon Shepherd", "Kyle Powell", "Josh Mann", "Kyle Young", "Slayde Guess", 
+    "Zach Davis", "Blake Jones", "Jordan Brown", "Braden Blagburn", 
+    "Grayson Suggs", "Evan Francis", "Hunter McEwen", "Taylor Kyser", 
+    "Andrew Hiss", "Camron Mann", "Dakota Creel", "Easton Anderson", 
+    "Jack Bishop", "Ryan Davis", "Stacey Isom (2)", "Steve Mann (2)", 
+    "Placeholder 1", "Placeholder 2", "Placeholder 3", "Placeholder 4"
+]
 
-# --- LOGIC ---
+# --- THE RANDOMIZER ---
+# We use the same seed so the results don't change every time the page refreshes
+random.seed(20260725)
+
+# 1. Shuffle all individual players
+shuffled_players = list(players)
+random.shuffle(shuffled_players)
+
+# 2. Create 25 Teams (Pairs)
+team_roster = {}
+for i in range(0, len(shuffled_players), 2):
+    team_num = str((i // 2) + 1)
+    team_roster[team_num] = f"{shuffled_players[i]} & {shuffled_players[i+1]}"
+
+# 3. Create Groupings (Two teams per group for the dashboard)
+team_numbers = list(team_roster.keys())
+# We'll shuffle the team numbers too so Team 1 isn't always in Group 1
+random.shuffle(team_numbers)
+
+pairings = []
+for i in range(0, len(team_numbers) - 1, 2):
+    pairings.append((team_numbers[i], team_numbers[i+1]))
+
+# --- UI LOGIC ---
 query_params = st.query_params
 team_id = query_params.get("team_id")
 is_admin = query_params.get("admin") == "true"
-
-# Shuffle all 25 teams
-teams = list(range(1, 26))
-random.seed(20260725) 
-random.shuffle(teams)
-
-# Create groups of 2 teams (4 players total per group)
-pairings = []
-for i in range(0, len(teams) - 1, 2):
-    pairings.append((teams[i], teams[i+1]))
-
-# Handle the odd team out (Team 25) if necessary
-leftover = teams[-1] if len(teams) % 2 != 0 else None
 
 # --- STYLING ---
 st.markdown("""
@@ -62,14 +59,13 @@ st.markdown("""
 
 # --- 1. ADMIN DASHBOARD ---
 if is_admin:
-    st.title("⛳ NorAL Golf: Tournament Pairings")
-    st.write("Each Group represents two teams playing together.")
+    st.title("⛳ NorAL Golf: Random Pairings Dashboard")
     st.markdown("---")
     
     col1, col2 = st.columns(2)
     for idx, pair in enumerate(pairings):
-        name_1 = team_roster.get(str(pair[0]))
-        name_2 = team_roster.get(str(pair[1]))
+        name_1 = team_roster.get(pair[0])
+        name_2 = team_roster.get(pair[1])
         
         with col1 if idx < 6 else col2:
             st.markdown(f"""
@@ -79,9 +75,6 @@ if is_admin:
                     <p style='font-size:18px; margin:5px 0;'><b>Team {pair[1]}:</b> {name_2}</p>
                 </div>
             """, unsafe_allow_html=True)
-            
-    if leftover:
-        st.warning(f"Note: Team {leftover} ({team_roster.get(str(leftover))}) will be added to a group shortly.")
 
 # --- 2. PLAYER SCAN VIEW ---
 elif team_id:
@@ -89,17 +82,17 @@ elif team_id:
     st.balloons()
     st.markdown(f"""
         <div class='assignment-box'>
-            <span style='font-size:30px;'>Welcome,</span><br>
-            <span style='font-size:35px; font-weight:bold;'>{player_names}</span>
-            <hr style='border-color:#fbbf24;'>
-            <span style='font-size:24px;'>You are:</span>
+            <span style='font-size:24px;'>Envelope Result:</span><br>
             <span class='team-number'>TEAM {team_id}</span>
+            <hr style='border-color:#fbbf24;'>
+            <span style='font-size:20px;'>Your Randomly Assigned Partner is:</span><br>
+            <span style='font-size:32px; font-weight:bold; color:#fbbf24;'>{player_names}</span>
         </div>
     """, unsafe_allow_html=True)
     
-    if st.button("SEE THE FULL FIELD PAIRINGS"):
+    if st.button("SEE THE FULL TOURNAMENT FIELD"):
         st.query_params.update(admin="true")
         st.rerun()
 else:
     st.title("Welcome to NorAL Golf")
-    st.warning("Please scan your envelope QR code.")
+    st.warning("Please scan your envelope QR code to reveal your partner.")
