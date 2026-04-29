@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
+import streamlit.components.v1 as components
 
 # --- FORMAL CLUBHOUSE THEME ---
 st.set_page_config(page_title="2026 NorAL Golf Invitational", layout="wide")
@@ -68,7 +69,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA ---
+# --- DATA BRAIN ---
 @st.cache_resource
 def get_tournament_data():
     return {str(i): [] for i in range(1, 26)}
@@ -83,12 +84,11 @@ params = st.query_params
 team_id = params.get("team_id")
 
 if team_id:
-    # --- REGISTRATION VIEW ---
+    # --- PLAYER REGISTRATION VIEW ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
     
-    # Check if team is already full
     if len(current_team) >= 2:
         st.warning(f"Team {team_id} is already full.")
         st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[0]}</div>", unsafe_allow_html=True)
@@ -101,7 +101,6 @@ if team_id:
         name_entry = st.text_input("Full Name", placeholder="First & Last Name", key="reg_input", label_visibility="collapsed")
         
         if st.button("Confirm Entry"):
-            # Check for duplicate names in the whole field
             all_names = [name.lower() for team in live_data.values() for name in team]
             
             if not name_entry:
@@ -111,7 +110,7 @@ if team_id:
             else:
                 live_data[str(team_id)].append(name_entry.strip())
                 
-                # Reveal Animation
+                # REVEAL ANIMATION
                 placeholder = st.empty()
                 with placeholder.container():
                     st.markdown(f"<h3 style='text-align:center;'>Assigning Team Position...</h3>", unsafe_allow_html=True)
@@ -124,6 +123,9 @@ if team_id:
                 st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
                 st.markdown(f"<h2 style='text-align:center; color:#059669;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
                 
+                # STORE LAST UPDATED TEAM FOR AUTO-SCROLL
+                st.session_state['last_update'] = team_id
+                
                 time.sleep(2.5)
                 st.query_params.clear()
                 st.rerun()
@@ -131,19 +133,20 @@ if team_id:
 else:
     # --- DASHBOARD VIEW ---
     total_players = sum(len(names) for names in live_data.values())
-    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.8em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(total_players / 50)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 25 Teams
+    # 25 Teams Grid
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
+        # We add a unique HTML ID to every team card
         st.markdown(f"""
-            <div class='team-card' id='team-{i}'>
+            <div id='team-{i}' class='team-card'>
                 <div class='team-label'>Team {i}</div>
                 <div class='player-row {"filled-slot" if p1 != "---" else "empty-slot"}'>{p1}</div>
                 <div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div>
@@ -151,12 +154,26 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # Admin Reset
+    # --- THE AUTO-SCROLL JAVASCRIPT ---
+    if 'last_update' in st.session_state:
+        target_id = f"team-{st.session_state['last_update']}"
+        components.html(f"""
+            <script>
+                var element = window.parent.document.getElementById('{target_id}');
+                if (element) {{
+                    element.scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                }}
+            </script>
+        """, height=0)
+        # Clear it so it doesn't keep scrolling on every refresh
+        del st.session_state['last_update']
+
+    # ADMIN TOOLS
     st.markdown("---")
     with st.expander("Tournament Director"):
         admin_pass = st.text_input("Passcode", type="password")
         if admin_pass == "noral2026":
-            if st.button("Reset Field"):
+            if st.button("Reset Entire Field"):
                 live_data.update({str(i): [] for i in range(1, 26)})
                 st.rerun()
 
