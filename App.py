@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import time
-import streamlit.components.v1 as components
 
 # --- FORMAL CLUBHOUSE THEME ---
 st.set_page_config(page_title="2026 NorAL Golf Invitational", layout="wide")
@@ -40,7 +39,7 @@ st.markdown("""
         background: #1f2937;
         border-left: 4px solid #059669; 
         padding: 24px;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         border-radius: 4px;
         text-align: center;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
@@ -69,7 +68,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA BRAIN ---
+# --- DATA ---
 @st.cache_resource
 def get_tournament_data():
     return {str(i): [] for i in range(1, 26)}
@@ -84,7 +83,7 @@ params = st.query_params
 team_id = params.get("team_id")
 
 if team_id:
-    # --- PLAYER REGISTRATION VIEW ---
+    # --- REGISTRATION VIEW ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
@@ -123,12 +122,11 @@ if team_id:
                 st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
                 st.markdown(f"<h2 style='text-align:center; color:#059669;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
                 
-                # STORE LAST UPDATED TEAM FOR AUTO-SCROLL
-                st.session_state['last_update'] = team_id
-                
-                time.sleep(2.5)
+                time.sleep(2)
+                # NATIVE SCROLL REDIRECT
                 st.query_params.clear()
-                st.rerun()
+                # Adding an anchor to the URL for native browser scrolling
+                st.markdown(f'<meta http-equiv="refresh" content="0;URL=./#team-{team_id}">', unsafe_allow_html=True)
 
 else:
     # --- DASHBOARD VIEW ---
@@ -138,15 +136,16 @@ else:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 25 Teams Grid
+    # 25 Teams
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
-        # We add a unique HTML ID to every team card
+        # We use an <a> tag as a hard anchor for iPads/Mobile
+        st.markdown(f"<div id='team-{i}'></div>", unsafe_allow_html=True)
         st.markdown(f"""
-            <div id='team-{i}' class='team-card'>
+            <div class='team-card'>
                 <div class='team-label'>Team {i}</div>
                 <div class='player-row {"filled-slot" if p1 != "---" else "empty-slot"}'>{p1}</div>
                 <div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div>
@@ -154,21 +153,7 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- THE AUTO-SCROLL JAVASCRIPT ---
-    if 'last_update' in st.session_state:
-        target_id = f"team-{st.session_state['last_update']}"
-        components.html(f"""
-            <script>
-                var element = window.parent.document.getElementById('{target_id}');
-                if (element) {{
-                    element.scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                }}
-            </script>
-        """, height=0)
-        # Clear it so it doesn't keep scrolling on every refresh
-        del st.session_state['last_update']
-
-    # ADMIN TOOLS
+    # ADMIN
     st.markdown("---")
     with st.expander("Tournament Director"):
         admin_pass = st.text_input("Passcode", type="password")
