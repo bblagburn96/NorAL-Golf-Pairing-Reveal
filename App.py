@@ -2,58 +2,66 @@ import streamlit as st
 import pandas as pd
 import time
 
-# --- FORMAL CLUBHOUSE THEME ---
+# --- FORMAL "MIDNIGHT STEEL" THEME ---
 st.set_page_config(page_title="NorAL Golf | Team Selection", layout="wide")
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;700&display=swap');
     
-    .stApp { background-color: #0c1e12; color: #f4f1ea; }
+    /* Background: Deep Midnight Navy */
+    .stApp { background-color: #020617; color: #f8fafc; }
     
-    .logo-container {
-        text-align: center;
-        padding-top: 20px;
-    }
-
+    /* Title Styling */
     .golf-header {
-        font-family: 'Playfair Display', serif; color: #d4af37;
+        font-family: 'Playfair Display', serif; color: #f1f5f9;
         text-align: center; letter-spacing: 1px;
-        padding-bottom: 5px; margin-top: 10px;
+        margin-top: 10px;
     }
     
+    /* Card Styling: Slate Navy with Silver Border */
     .team-card {
-        background: linear-gradient(145deg, #122b1a, #0c1e12);
-        border: 1px solid #d4af37; padding: 15px; margin-bottom: 12px;
-        border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        background: #0f172a;
+        border: 1px solid #334155; 
+        padding: 20px; margin-bottom: 15px;
+        border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         text-align: center;
     }
     
-    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.2em; padding: 8px 0; }
-    .empty-slot { color: #2d4a36; font-style: italic; font-size: 0.9em; }
-    .filled-slot { color: #ffffff; font-weight: bold; } 
+    .player-row { font-family: 'Inter', sans-serif; font-size: 1.25em; padding: 10px 0; }
+    .empty-slot { color: #475569; font-style: italic; font-size: 0.95em; }
+    .filled-slot { color: #f8fafc; font-weight: 700; } 
     
-    .stTextInput>div>div>input { background-color: #f4f1ea; color: #0c1e12; border-radius: 0; font-size: 1.2em; }
+    /* Input Styling */
+    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 2px; font-size: 1.2em; border: none; }
+    
+    /* Button Styling: Silver/Slate Blue */
     .stButton>button { 
-        background-color: #d4af37; color: #0c1e12; font-weight: bold; 
-        border-radius: 0; border: none; width: 100%; height: 3.5em; font-size: 1.1em;
+        background-color: #f8fafc; color: #020617; font-weight: 700; 
+        border-radius: 2px; border: none; width: 100%; height: 3.5em; font-size: 1.1em;
+        transition: 0.2s;
     }
-    .download-btn { text-align: center; margin-top: 50px; opacity: 0.4; }
+    .stButton>button:hover { background-color: #cbd5e1; }
+
+    /* Centering the Image container */
+    [data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOGO & TITLE SECTION ---
-st.markdown("<div class='logo-container'>", unsafe_allow_html=True)
-
-# Updated to look for your specific file name
-try:
-    st.image("IMG_4021.jpeg", width=220) 
-except:
-    st.markdown("⚠️ *[Please upload IMG_4021.jpeg to your GitHub repository]*")
+# --- LOGO & TITLE (Centered) ---
+cols = st.columns([1, 2, 1])
+with cols[1]:
+    try:
+        st.image("IMG_4021.jpeg", width=240) 
+    except:
+        st.info("Logo pending upload: IMG_4021.jpeg")
 
 st.markdown("<h1 class='golf-header'>2026 NorAL Golf Invitational</h1>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align:center; color:#d4af37; font-family:Montserrat;'>Team Selection</h3>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align:center; color:#94a3b8; font-family:Inter; font-weight:400; margin-top:-10px;'>Team Selection</h3>", unsafe_allow_html=True)
+st.markdown("<div style='width:60px; height:2px; background:#94a3b8; margin: 20px auto;'></div>", unsafe_allow_html=True)
 
 # --- SHARED DATA BRAIN ---
 @st.cache_resource
@@ -66,24 +74,24 @@ live_data = get_tournament_data()
 params = st.query_params
 team_id = params.get("team_id")
 
-# --- VIEW 1: PLAYER SIGN-IN (Mobile View) ---
+# --- VIEW 1: PLAYER SIGN-IN ---
 if team_id:
-    st.markdown(f"<h2 style='text-align:center;'>Team Card: {team_id}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center; font-family:Playfair Display;'>Team Card: {team_id}</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
     
     if len(current_team) >= 2:
-        st.success("Registration Complete.")
+        st.success("Team 100% Locked.")
         st.markdown(f"<div class='player-row filled-slot'>{current_team[0]}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='player-row filled-slot'>{current_team[1]}</div>", unsafe_allow_html=True)
-        if st.button("View Live Field"):
+        if st.button("Back to Field"):
             st.query_params.clear()
             st.rerun()
     else:
-        st.write("Please sign in to claim your position on this team.")
-        name_entry = st.text_input("Enter Full Name", placeholder="e.g. Stacey Isom", key="reg_input")
+        st.write("Enter your name as it appears on the roster to join this pairing.")
+        name_entry = st.text_input("Full Name", placeholder="e.g. Stacey Isom", key="reg_input")
         
-        if st.button("Confirm & Join"):
+        if st.button("Confirm Selection"):
             if name_entry:
                 live_data[str(team_id)].append(name_entry.strip())
                 st.balloons()
@@ -91,10 +99,11 @@ if team_id:
                 st.query_params.clear()
                 st.rerun()
 
-# --- VIEW 2: THE DASHBOARD (Live Updates) ---
+# --- VIEW 2: THE DASHBOARD ---
 else:
-    st.markdown("<h3 style='text-align:center;'>Live Field Updates</h3>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align:center; color:#475569; letter-spacing:2px; text-transform:uppercase;'>Live Pairings Dashboard</h4>", unsafe_allow_html=True)
     
+    # Grid of Cards
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "Awaiting Player..."
@@ -102,13 +111,15 @@ else:
         
         st.markdown(f"""
             <div class='team-card'>
-                <div style='color:#d4af37; font-size: 0.8em; font-weight: bold;'>Team {i}</div>
+                <div style='color:#94a3b8; font-size: 0.8em; font-weight: bold; text-transform: uppercase;'>Team {i}</div>
                 <div class='player-row {"filled-slot" if p1 != "Awaiting Player..." else "empty-slot"}'>{p1}</div>
-                <div style='border-top: 1px solid rgba(212,175,55,0.1); width: 30%; margin: 2px auto;'></div>
+                <div style='border-top: 1px solid rgba(148, 163, 184, 0.1); width: 40%; margin: 5px auto;'></div>
                 <div class='player-row {"filled-slot" if p2 != "Awaiting Player..." else "empty-slot"}'>{p2}</div>
             </div>
         """, unsafe_allow_html=True)
 
-    # Manual refresh
+    # Auto-refresh
     time.sleep(5)
     st.rerun()
+
+Your slide deck and app code are now perfectly synced! Take a look at the design and let me know if those Navy and Silver tones hit the mark for the event.
