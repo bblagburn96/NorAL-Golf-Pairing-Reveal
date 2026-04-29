@@ -35,14 +35,30 @@ st.markdown("""
         color: #9ca3af;
     }
     
+    /* THE HIGHLIGHTED REVEAL CARD */
+    .reveal-card {
+        background: #065f46; /* Darker Emerald */
+        border: 2px solid #10b981;
+        padding: 30px;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        text-align: center;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+        70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    
     .team-card {
         background: #1f2937;
         border-left: 4px solid #059669; 
         padding: 24px;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         border-radius: 4px;
         text-align: center;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     }
     
     .team-label {
@@ -120,13 +136,16 @@ if team_id:
                 
                 placeholder.empty()
                 st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
-                st.markdown(f"<h2 style='text-align:center; color:#059669;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
+                st.markdown(f"<h2 style='text-align:center; color:#10b981;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
                 
-                time.sleep(2)
-                # NATIVE SCROLL REDIRECT
+                # SET RECENT FLAG FOR LEADERBOARD
+                st.session_state['latest_name'] = name_entry
+                st.session_state['latest_team'] = team_id
+                st.session_state['latest_time'] = time.time()
+                
+                time.sleep(2.5)
                 st.query_params.clear()
-                # Adding an anchor to the URL for native browser scrolling
-                st.markdown(f'<meta http-equiv="refresh" content="0;URL=./#team-{team_id}">', unsafe_allow_html=True)
+                st.rerun()
 
 else:
     # --- DASHBOARD VIEW ---
@@ -134,16 +153,31 @@ else:
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(total_players / 50)
     
+    # 1. THE "TOP PIN" HIGHLIGHT
+    # Only shows if someone joined in the last 15 seconds
+    if 'latest_time' in st.session_state:
+        if time.time() - st.session_state['latest_time'] < 15:
+            st.markdown(f"""
+                <div class='reveal-card'>
+                    <div style='color: #a7f3d0; font-size: 0.8em; font-weight: 700; letter-spacing: 2px;'>LATEST ENTRY</div>
+                    <div style='font-size: 2em; font-weight: 700; font-family: Montserrat;'>{st.session_state['latest_name']}</div>
+                    <div style='color: #a7f3d0; font-size: 1.2em; font-family: Playfair Display; font-style: italic;'>Confirmed for Team {st.session_state['latest_team']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Clear it after 15 seconds
+            del st.session_state['latest_name']
+            del st.session_state['latest_team']
+            del st.session_state['latest_time']
+
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 25 Teams
+    # 2. THE GRID
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
-        # We use an <a> tag as a hard anchor for iPads/Mobile
-        st.markdown(f"<div id='team-{i}'></div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class='team-card'>
                 <div class='team-label'>Team {i}</div>
