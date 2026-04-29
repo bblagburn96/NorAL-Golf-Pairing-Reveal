@@ -9,7 +9,7 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
     
-    /* Deep Slate/Midnight Background */
+    /* Midnight Navy Background */
     .stApp { background-color: #020617; color: #f8fafc; }
     
     /* Elegant Text Header */
@@ -22,7 +22,7 @@ st.markdown("""
 
     .main-title {
         font-family: 'Playfair Display', serif;
-        font-size: 2.2em;
+        font-size: 2.5em;
         color: #ffffff;
         margin-bottom: 5px;
         letter-spacing: -0.5px;
@@ -45,39 +45,43 @@ st.markdown("""
         margin-bottom: 16px;
         border-radius: 2px;
         text-align: center;
-        transition: border 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     
     .team-label {
         font-family: 'Inter', sans-serif;
         color: #64748b;
-        font-size: 0.75em;
+        font-size: 0.8em;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 10px;
+        letter-spacing: 1.5px;
+        margin-bottom: 12px;
     }
 
     .player-row { 
         font-family: 'Inter', sans-serif; 
-        font-size: 1.3em; 
-        padding: 8px 0; 
+        font-size: 1.4em; 
+        padding: 10px 0; 
     }
 
-    .empty-slot { color: #334155; font-style: italic; }
-    .filled-slot { color: #f8fafc; font-weight: 600; } 
+    .empty-slot { color: #1e293b; font-style: italic; font-weight: 400; }
+    .filled-slot { color: #f8fafc; font-weight: 700; } 
     
     /* Clean Inputs & Buttons */
-    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 0; border: none; font-size: 1.1em; }
+    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 0; border: none; font-size: 1.2em; }
     .stButton>button { 
-        background-color: #f8fafc; color: #020617; font-weight: 700; 
-        border-radius: 0; border: none; width: 100%; height: 3.8em;
-        text-transform: uppercase; letter-spacing: 1px;
+        background-color: #f8fafc; color: #020617; font-weight: 800; 
+        border-radius: 0; border: none; width: 100%; height: 4em;
+        text-transform: uppercase; letter-spacing: 2px;
     }
+    
+    /* Hide Streamlit Branding for Professionalism */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER ---
+# --- HEADER SECTION ---
 st.markdown("""
     <div class='header-box'>
         <div class='main-title'>2026 NorAL Golf Invitational</div>
@@ -85,20 +89,20 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- SHARED DATA ---
+# --- SHARED MEMORY (The Field) ---
 @st.cache_resource
 def get_tournament_data():
     return {str(i): [] for i in range(1, 26)}
 
 live_data = get_tournament_data()
 
-# --- NAVIGATION ---
+# --- APP ROUTING ---
 params = st.query_params
 team_id = params.get("team_id")
 
+# --- VIEW 1: PLAYER REGISTRATION (Mobile Scanned Card) ---
 if team_id:
-    # --- PLAYER REGISTRATION VIEW ---
-    st.markdown(f"<h2 style='text-align:center; font-family:Playfair Display;'>Entry Card: Team {team_id}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center; font-family:Playfair Display; margin-bottom:10px;'>Entry Card: Team {team_id}</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
     
@@ -106,38 +110,46 @@ if team_id:
         st.success("Pairing Confirmed.")
         st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[0]}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[1]}</div>", unsafe_allow_html=True)
-        if st.button("View Tournament Field"):
+        if st.button("View Live Field"):
             st.query_params.clear()
             st.rerun()
     else:
-        st.markdown("<p style='text-align:center; color:#94a3b8;'>Enter your name to claim your spot.</p>", unsafe_allow_html=True)
-        name_entry = st.text_input("Full Name", placeholder="e.g. Stacey Isom", key="reg_input", label_visibility="collapsed")
+        st.markdown("<p style='text-align:center; color:#94a3b8; margin-bottom:20px;'>Enter your name to claim your spot on this team.</p>", unsafe_allow_html=True)
+        name_entry = st.text_input("Full Name", placeholder="First & Last Name", key="reg_input", label_visibility="collapsed")
         
-        if st.button("Submit Registration"):
+        if st.button("Confirm Selection"):
             if name_entry:
                 live_data[str(team_id)].append(name_entry.strip())
-                st.balloons()
-                time.sleep(2)
+                
+                # SILVER CONFETTI & TOAST
+                st.snow()
+                st.toast(f"Slot Secured for Team {team_id}", icon="⛳")
+                
+                time.sleep(2.5)
                 st.query_params.clear()
                 st.rerun()
+            else:
+                st.warning("Identification is required.")
 
+# --- VIEW 2: THE MAIN DASHBOARD (Leaderboard) ---
 else:
-    # --- MAIN LEADERBOARD VIEW ---
-    st.markdown("<p style='text-align:center; color:#64748b; font-size:0.8em; margin-bottom:30px;'>LIVE UPDATES FROM THE CLUBHOUSE</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#475569; font-size:0.85em; letter-spacing:2px; margin-bottom:30px;'>LIVE CLUBHOUSE UPDATES</p>", unsafe_allow_html=True)
     
+    # 25 Teams list
     for i in range(1, 26):
         members = live_data[str(i)]
-        p1 = members[0] if len(members) > 0 else "Pending..."
-        p2 = members[1] if len(members) > 1 else "Pending..."
+        p1 = members[0] if len(members) > 0 else "Awaiting Player..."
+        p2 = members[1] if len(members) > 1 else "Awaiting Player..."
         
         st.markdown(f"""
             <div class='team-card'>
                 <div class='team-label'>Team {i}</div>
-                <div class='player-row {"filled-slot" if p1 != "Pending..." else "empty-slot"}'>{p1}</div>
-                <div style='border-top: 1px solid #1e293b; width: 30%; margin: 4px auto;'></div>
-                <div class='player-row {"filled-slot" if p2 != "Pending..." else "empty-slot"}'>{p2}</div>
+                <div class='player-row {"filled-slot" if p1 != "Awaiting Player..." else "empty-slot"}'>{p1}</div>
+                <div style='border-top: 1px solid #1e293b; width: 40%; margin: 6px auto;'></div>
+                <div class='player-row {"filled-slot" if p2 != "Awaiting Player..." else "empty-slot"}'>{p2}</div>
             </div>
         """, unsafe_allow_html=True)
 
+    # 5-second auto-refresh
     time.sleep(5)
     st.rerun()
