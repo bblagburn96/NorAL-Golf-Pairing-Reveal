@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import time
 
@@ -8,175 +9,83 @@ st.set_page_config(page_title="2026 NorAL Golf Invitational", layout="wide")
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&display=swap');
-    
     .stApp { background-color: #111827; color: #f3f4f6; }
-    
-    .header-box {
-        text-align: center;
-        padding: 40px 10px;
-        border-bottom: 2px solid #374151;
-        margin-bottom: 20px;
-        background: linear-gradient(to bottom, #0f172a, #111827);
-    }
-
-    .main-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.8em;
-        color: #ffffff;
-        margin-bottom: 5px;
-        font-style: italic;
-    }
-
-    .sub-title {
-        font-family: 'Montserrat', sans-serif;
-        font-size: 0.85em;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        color: #9ca3af;
-    }
-    
-    /* THE HIGHLIGHTED REVEAL CARD */
-    .reveal-card {
-        background: #065f46; /* Darker Emerald */
-        border: 2px solid #10b981;
-        padding: 30px;
-        margin-bottom: 30px;
-        border-radius: 8px;
-        text-align: center;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-        70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-    
-    .team-card {
-        background: #1f2937;
-        border-left: 4px solid #059669; 
-        padding: 24px;
-        margin-bottom: 16px;
-        border-radius: 4px;
-        text-align: center;
-    }
-    
-    .team-label {
-        font-family: 'Montserrat', sans-serif;
-        color: #9ca3af;
-        font-size: 0.75em;
-        font-weight: 700;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-    }
-
-    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.4em; letter-spacing: 1px; }
+    .header-box { text-align: center; padding: 40px 10px; border-bottom: 2px solid #374151; margin-bottom: 20px; background: linear-gradient(to bottom, #0f172a, #111827); }
+    .main-title { font-family: 'Playfair Display', serif; font-size: 2.8em; color: #ffffff; font-style: italic; }
+    .sub-title { font-family: 'Montserrat', sans-serif; font-size: 0.85em; text-transform: uppercase; letter-spacing: 4px; color: #9ca3af; }
+    .reveal-card { background: #065f46; border: 2px solid #10b981; padding: 30px; margin-bottom: 30px; border-radius: 8px; text-align: center; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+    .team-card { background: #1f2937; border-left: 4px solid #059669; padding: 24px; margin-bottom: 16px; border-radius: 4px; text-align: center; }
+    .team-label { font-family: 'Montserrat'; color: #9ca3af; font-size: 0.75em; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
+    .player-row { font-family: 'Montserrat'; font-size: 1.4em; letter-spacing: 1px; }
     .empty-slot { color: #374151; font-weight: 400; }
     .filled-slot { color: #ffffff; font-weight: 700; } 
-    
-    .stButton>button { 
-        background-color: #059669; color: white; font-weight: 700; 
-        border-radius: 4px; border: none; width: 100%; height: 3.8em;
-        text-transform: uppercase; letter-spacing: 2px;
-    }
-    
+    .stButton>button { background-color: #059669; color: white; font-weight: 700; border-radius: 4px; border: none; width: 100%; height: 3.8em; text-transform: uppercase; letter-spacing: 2px; }
     .stProgress > div > div > div > div { background-color: #059669; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA ---
-@st.cache_resource
-def get_tournament_data():
-    return {str(i): [] for i in range(1, 26)}
+# --- GOOGLE SHEETS CONNECTION ---
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-live_data = get_tournament_data()
+def load_data():
+    # Changed worksheet name to NorALsheet
+    return conn.read(worksheet="NorALsheet", ttl="5s")
 
 # --- HEADER ---
 st.markdown("<div class='header-box'><div class='main-title'>NorAL Golf Invitational</div><div class='sub-title'>2026 Team Selection</div></div>", unsafe_allow_html=True)
 
-# --- NAVIGATION ---
 params = st.query_params
 team_id = params.get("team_id")
+
+df = load_data()
 
 if team_id:
     # --- REGISTRATION VIEW ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
-    current_team = live_data.get(str(team_id), [])
+    # Filter sheet for this team
+    team_mask = df[df['team_id'] == int(team_id)]
     
-    if len(current_team) >= 2:
+    if len(team_mask) >= 2:
         st.warning(f"Team {team_id} is already full.")
-        st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[0]}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[1]}</div>", unsafe_allow_html=True)
+        for name in team_mask['name'].tolist():
+            st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{name}</div>", unsafe_allow_html=True)
         if st.button("Return to Field"):
             st.query_params.clear()
             st.rerun()
     else:
-        st.markdown("<p style='text-align:center; color:#9ca3af;'>Identify yourself to join the field.</p>", unsafe_allow_html=True)
-        name_entry = st.text_input("Full Name", placeholder="First & Last Name", key="reg_input", label_visibility="collapsed")
+        name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
         
         if st.button("Confirm Entry"):
-            all_names = [name.lower() for team in live_data.values() for name in team]
-            
             if not name_entry:
                 st.error("Please enter a name.")
-            elif name_entry.lower() in all_names:
-                st.error(f"'{name_entry}' is already registered in the field!")
+            elif name_entry.lower() in [n.lower() for n in df['name'].tolist()]:
+                st.error("You are already registered!")
             else:
-                live_data[str(team_id)].append(name_entry.strip())
+                # Add to DataFrame and Update Sheet
+                new_row = pd.DataFrame([{"team_id": int(team_id), "name": name_entry.strip()}])
+                updated_df = pd.concat([df, new_row], ignore_index=True)
+                conn.update(worksheet="NorALsheet", data=updated_df)
                 
-                # REVEAL ANIMATION
-                placeholder = st.empty()
-                with placeholder.container():
-                    st.markdown(f"<h3 style='text-align:center;'>Assigning Team Position...</h3>", unsafe_allow_html=True)
-                    pb = st.progress(0)
-                    for p in range(100):
-                        time.sleep(0.01)
-                        pb.progress(p + 1)
-                
-                placeholder.empty()
-                st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
-                st.markdown(f"<h2 style='text-align:center; color:#10b981;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
-                
-                # SET RECENT FLAG FOR LEADERBOARD
                 st.session_state['latest_name'] = name_entry
                 st.session_state['latest_team'] = team_id
                 st.session_state['latest_time'] = time.time()
                 
-                time.sleep(2.5)
                 st.query_params.clear()
                 st.rerun()
-
 else:
     # --- DASHBOARD VIEW ---
-    total_players = sum(len(names) for names in live_data.values())
-    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
-    st.progress(total_players / 50)
+    total_players = len(df)
+    st.progress(min(total_players / 50, 1.0))
     
-    # 1. THE "TOP PIN" HIGHLIGHT
-    # Only shows if someone joined in the last 15 seconds
-    if 'latest_time' in st.session_state:
-        if time.time() - st.session_state['latest_time'] < 15:
-            st.markdown(f"""
-                <div class='reveal-card'>
-                    <div style='color: #a7f3d0; font-size: 0.8em; font-weight: 700; letter-spacing: 2px;'>LATEST ENTRY</div>
-                    <div style='font-size: 2em; font-weight: 700; font-family: Montserrat;'>{st.session_state['latest_name']}</div>
-                    <div style='color: #a7f3d0; font-size: 1.2em; font-family: Playfair Display; font-style: italic;'>Confirmed for Team {st.session_state['latest_team']}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Clear it after 15 seconds
-            del st.session_state['latest_name']
-            del st.session_state['latest_team']
-            del st.session_state['latest_time']
+    if 'latest_time' in st.session_state and time.time() - st.session_state['latest_time'] < 15:
+        st.markdown(f"<div class='reveal-card'><div style='font-size: 2em; font-weight: 700;'>{st.session_state['latest_name']}</div><div style='font-style: italic;'>Confirmed for Team {st.session_state['latest_team']}</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 2. THE GRID
     for i in range(1, 26):
-        members = live_data[str(i)]
-        p1 = members[0] if len(members) > 0 else "---"
-        p2 = members[1] if len(members) > 1 else "---"
+        team_players = df[df['team_id'] == i]['name'].tolist()
+        p1 = team_players[0] if len(team_players) > 0 else "---"
+        p2 = team_players[1] if len(team_players) > 1 else "---"
         
         st.markdown(f"""
             <div class='team-card'>
@@ -188,12 +97,12 @@ else:
         """, unsafe_allow_html=True)
 
     # ADMIN
-    st.markdown("---")
     with st.expander("Tournament Director"):
-        admin_pass = st.text_input("Passcode", type="password")
-        if admin_pass == "noral2026":
+        if st.text_input("Passcode", type="password") == "noral2026":
             if st.button("Reset Entire Field"):
-                live_data.update({str(i): [] for i in range(1, 26)})
+                # Reset with correct headers
+                reset_df = pd.DataFrame(columns=["team_id", "name", "category"])
+                conn.update(worksheet="NorALsheet", data=reset_df)
                 st.rerun()
 
     time.sleep(5)
