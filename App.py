@@ -12,12 +12,18 @@ st.markdown("""
     /* Midnight Navy Background */
     .stApp { background-color: #020617; color: #f8fafc; }
     
-    /* Centering and Title Styling */
-    .logo-container { text-align: center; margin-bottom: 20px; }
+    /* GLOBAL CENTERING FOR IMAGES */
+    [data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
     
     .golf-header {
         font-family: 'Playfair Display', serif; color: #f1f5f9;
-        text-align: center; letter-spacing: 1px; margin-top: 10px;
+        text-align: center; letter-spacing: 1px; margin-top: 20px;
+        margin-bottom: 0px;
     }
     
     /* Team Card Styling */
@@ -34,30 +40,27 @@ st.markdown("""
     .filled-slot { color: #f8fafc; font-weight: 700; } 
     
     /* Input & Button Styling */
-    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 2px; font-size: 1.2em; }
+    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 2px; }
     .stButton>button { 
         background-color: #f8fafc; color: #020617; font-weight: 700; 
-        border-radius: 2px; border: none; width: 100%; height: 3.5em; font-size: 1.1em;
+        border-radius: 2px; border: none; width: 100%; height: 3.5em;
     }
-    
-    /* Force Centering for Streamlit Elements */
-    [data-testid="stImage"] { display: flex; justify-content: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER SECTION ---
-st.markdown("<div class='logo-container'>", unsafe_allow_html=True)
+# --- LOGO SECTION (Centering Fix) ---
+# We use columns to force the image into the center of the page
+left_co, cent_co, last_co = st.columns([1, 2, 1])
+with cent_co:
+    try:
+        st.image("IMG_4021.jpeg", width=220) 
+    except:
+        st.info("Logo pending upload: IMG_4021.jpeg")
 
-# Make sure you upload IMG_4021.jpeg to GitHub
-try:
-    st.image("IMG_4021.jpeg", width=240) 
-except:
-    st.info("Logo pending upload: IMG_4021.jpeg")
-
+# --- TITLES ---
 st.markdown("<h1 class='golf-header'>2026 NorAL Golf Invitational</h1>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align:center; color:#94a3b8; font-family:Inter; font-weight:400; margin-top:-10px;'>Team Selection</h3>", unsafe_allow_html=True)
-st.markdown("<div style='width:60px; height:2px; background:#94a3b8; margin: 20px auto;'></div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align:center; color:#94a3b8; font-family:Inter; font-weight:400; margin-top:-5px;'>Team Selection</h3>", unsafe_allow_html=True)
+st.markdown("<div style='width:60px; height:2px; background:#94a3b8; margin: 25px auto;'></div>", unsafe_allow_html=True)
 
 # --- SHARED DATA ---
 @st.cache_resource
@@ -99,7 +102,6 @@ if team_id:
 else:
     st.markdown("<h4 style='text-align:center; color:#475569; letter-spacing:2px; text-transform:uppercase; margin-bottom: 20px;'>Live Pairings Dashboard</h4>", unsafe_allow_html=True)
     
-    # Simple list of Team Cards
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "Awaiting Player..."
@@ -114,6 +116,6 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # Automatic refresh every 5 seconds
+    # Automatic refresh
     time.sleep(5)
     st.rerun()
