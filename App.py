@@ -64,16 +64,11 @@ st.markdown("""
         text-transform: uppercase; letter-spacing: 2px;
     }
     
-    /* Progress Bar Color */
     .stProgress > div > div > div > div { background-color: #059669; }
-
-    /* Admin Reset Button Styling (Subtle) */
-    .admin-btn { opacity: 0.1; transition: 0.3s; }
-    .admin-btn:hover { opacity: 1.0; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA BRAIN ---
+# --- DATA ---
 @st.cache_resource
 def get_tournament_data():
     return {str(i): [] for i in range(1, 26)}
@@ -81,73 +76,74 @@ def get_tournament_data():
 live_data = get_tournament_data()
 
 # --- HEADER ---
-st.markdown("""
-    <div class='header-box'>
-        <div class='main-title'>NorAL Golf Invitational</div>
-        <div class='sub-title'>2026 Team Selection</div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown("<div class='header-box'><div class='main-title'>NorAL Golf Invitational</div><div class='sub-title'>2026 Team Selection</div></div>", unsafe_allow_html=True)
 
 # --- NAVIGATION ---
 params = st.query_params
 team_id = params.get("team_id")
 
 if team_id:
-    # --- PLAYER REGISTRATION (HIDDEN TEAM ID) ---
+    # --- REGISTRATION VIEW ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
     
+    # Check if team is already full
     if len(current_team) >= 2:
-        st.success(f"Registration Complete. You are on Team {team_id}.")
+        st.warning(f"Team {team_id} is already full.")
         st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[0]}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[1]}</div>", unsafe_allow_html=True)
-        if st.button("Return to Leaderboard"):
+        if st.button("Return to Field"):
             st.query_params.clear()
             st.rerun()
     else:
-        st.markdown("<p style='text-align:center; color:#9ca3af;'>Please identify yourself to be placed in the field.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#9ca3af;'>Identify yourself to join the field.</p>", unsafe_allow_html=True)
         name_entry = st.text_input("Full Name", placeholder="First & Last Name", key="reg_input", label_visibility="collapsed")
         
         if st.button("Confirm Entry"):
-            if name_entry:
+            # Check for duplicate names in the whole field
+            all_names = [name.lower() for team in live_data.values() for name in team]
+            
+            if not name_entry:
+                st.error("Please enter a name.")
+            elif name_entry.lower() in all_names:
+                st.error(f"'{name_entry}' is already registered in the field!")
+            else:
                 live_data[str(team_id)].append(name_entry.strip())
                 
+                # Reveal Animation
                 placeholder = st.empty()
                 with placeholder.container():
                     st.markdown(f"<h3 style='text-align:center;'>Assigning Team Position...</h3>", unsafe_allow_html=True)
-                    progress_bar = st.progress(0)
+                    pb = st.progress(0)
                     for p in range(100):
                         time.sleep(0.01)
-                        progress_bar.progress(p + 1)
+                        pb.progress(p + 1)
                 
                 placeholder.empty()
                 st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
                 st.markdown(f"<h2 style='text-align:center; color:#059669;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
-                st.markdown("<div style='text-align:center; font-size: 50px;'>⛳</div>", unsafe_allow_html=True)
                 
                 time.sleep(2.5)
                 st.query_params.clear()
                 st.rerun()
 
 else:
-    # --- MAIN LEADERBOARD ---
-    
-    # 1. LIVE FIELD COUNT
+    # --- DASHBOARD VIEW ---
     total_players = sum(len(names) for names in live_data.values())
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.8em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(total_players / 50)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 2. THE GRID
+    # 25 Teams
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
         st.markdown(f"""
-            <div class='team-card'>
+            <div class='team-card' id='team-{i}'>
                 <div class='team-label'>Team {i}</div>
                 <div class='player-row {"filled-slot" if p1 != "---" else "empty-slot"}'>{p1}</div>
                 <div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div>
@@ -155,12 +151,12 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # 3. HIDDEN ADMIN RESET (Bottom of page, low visibility)
+    # Admin Reset
     st.markdown("---")
     with st.expander("Tournament Director"):
         admin_pass = st.text_input("Passcode", type="password")
-        if admin_pass == "noral2026": # You can change this
-            if st.button("Reset Entire Field"):
+        if admin_pass == "noral2026":
+            if st.button("Reset Field"):
                 live_data.update({str(i): [] for i in range(1, 26)})
                 st.rerun()
 
