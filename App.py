@@ -2,24 +2,25 @@ import streamlit as st
 import pandas as pd
 import time
 
-# --- FORMAL "MIDNIGHT STEEL" THEME ---
-st.set_page_config(page_title="NorAL Golf | Team Selection", layout="wide")
+# --- MIDNIGHT STEEL THEME ---
+st.set_page_config(page_title="2026 NorAL Golf Invitational", layout="wide")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;700&display=swap');
     
-    /* Background: Deep Midnight Navy */
+    /* Midnight Navy Background */
     .stApp { background-color: #020617; color: #f8fafc; }
     
-    /* Title Styling */
+    /* Centering and Title Styling */
+    .logo-container { text-align: center; margin-bottom: 20px; }
+    
     .golf-header {
         font-family: 'Playfair Display', serif; color: #f1f5f9;
-        text-align: center; letter-spacing: 1px;
-        margin-top: 10px;
+        text-align: center; letter-spacing: 1px; margin-top: 10px;
     }
     
-    /* Card Styling: Slate Navy with Silver Border */
+    /* Team Card Styling */
     .team-card {
         background: #0f172a;
         border: 1px solid #334155; 
@@ -32,49 +33,44 @@ st.markdown("""
     .empty-slot { color: #475569; font-style: italic; font-size: 0.95em; }
     .filled-slot { color: #f8fafc; font-weight: 700; } 
     
-    /* Input Styling */
-    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 2px; font-size: 1.2em; border: none; }
-    
-    /* Button Styling: Silver/Slate Blue */
+    /* Input & Button Styling */
+    .stTextInput>div>div>input { background-color: #f8fafc; color: #020617; border-radius: 2px; font-size: 1.2em; }
     .stButton>button { 
         background-color: #f8fafc; color: #020617; font-weight: 700; 
         border-radius: 2px; border: none; width: 100%; height: 3.5em; font-size: 1.1em;
-        transition: 0.2s;
     }
-    .stButton>button:hover { background-color: #cbd5e1; }
-
-    /* Centering the Image container */
-    [data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-    }
+    
+    /* Force Centering for Streamlit Elements */
+    [data-testid="stImage"] { display: flex; justify-content: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOGO & TITLE (Centered) ---
-cols = st.columns([1, 2, 1])
-with cols[1]:
-    try:
-        st.image("IMG_4021.jpeg", width=240) 
-    except:
-        st.info("Logo pending upload: IMG_4021.jpeg")
+# --- HEADER SECTION ---
+st.markdown("<div class='logo-container'>", unsafe_allow_html=True)
+
+# Make sure you upload IMG_4021.jpeg to GitHub
+try:
+    st.image("IMG_4021.jpeg", width=240) 
+except:
+    st.info("Logo pending upload: IMG_4021.jpeg")
 
 st.markdown("<h1 class='golf-header'>2026 NorAL Golf Invitational</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align:center; color:#94a3b8; font-family:Inter; font-weight:400; margin-top:-10px;'>Team Selection</h3>", unsafe_allow_html=True)
 st.markdown("<div style='width:60px; height:2px; background:#94a3b8; margin: 20px auto;'></div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# --- SHARED DATA BRAIN ---
+# --- SHARED DATA ---
 @st.cache_resource
 def get_tournament_data():
     return {str(i): [] for i in range(1, 26)}
 
 live_data = get_tournament_data()
 
-# --- ROUTING ---
+# --- APP NAVIGATION ---
 params = st.query_params
 team_id = params.get("team_id")
 
-# --- VIEW 1: PLAYER SIGN-IN ---
+# IF PLAYER SCANS A CARD
 if team_id:
     st.markdown(f"<h2 style='text-align:center; font-family:Playfair Display;'>Team Card: {team_id}</h2>", unsafe_allow_html=True)
     
@@ -84,7 +80,7 @@ if team_id:
         st.success("Team 100% Locked.")
         st.markdown(f"<div class='player-row filled-slot'>{current_team[0]}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='player-row filled-slot'>{current_team[1]}</div>", unsafe_allow_html=True)
-        if st.button("Back to Field"):
+        if st.button("Back to Selection Board"):
             st.query_params.clear()
             st.rerun()
     else:
@@ -99,11 +95,11 @@ if team_id:
                 st.query_params.clear()
                 st.rerun()
 
-# --- VIEW 2: THE DASHBOARD ---
+# MAIN DASHBOARD VIEW
 else:
-    st.markdown("<h4 style='text-align:center; color:#475569; letter-spacing:2px; text-transform:uppercase;'>Live Pairings Dashboard</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align:center; color:#475569; letter-spacing:2px; text-transform:uppercase; margin-bottom: 20px;'>Live Pairings Dashboard</h4>", unsafe_allow_html=True)
     
-    # Grid of Cards
+    # Simple list of Team Cards
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "Awaiting Player..."
@@ -118,8 +114,6 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # Auto-refresh
+    # Automatic refresh every 5 seconds
     time.sleep(5)
     st.rerun()
-
-Your slide deck and app code are now perfectly synced! Take a look at the design and let me know if those Navy and Silver tones hit the mark for the event.
