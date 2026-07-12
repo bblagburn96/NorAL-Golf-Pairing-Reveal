@@ -213,14 +213,11 @@ else:
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
-        grid_html += f"""
-            <div class='team-card'>
-                <div class='team-label'>Team {i}</div>
-                <div class='player-row {"filled-slot" if p1 != "---" else "empty-slot"}'>{p1}</div>
-                <div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div>
-                <div class='player-row {"filled-slot" if p2 != "---" else "empty-slot"}'>{p2}</div>
-            </div>
-        """
+        # Flattened HTML to prevent Markdown code block detection
+        card_class = "filled-slot" if p1 != "---" else "empty-slot"
+        card_class_2 = "filled-slot" if p2 != "---" else "empty-slot"
+        
+        grid_html += f"<div class='team-card'><div class='team-label'>Team {i}</div><div class='player-row {card_class}'>{p1}</div><div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div><div class='player-row {card_class_2}'>{p2}</div></div>"
         
     grid_html += "</div></div>"
     
@@ -238,4 +235,3 @@ else:
 
     time.sleep(5)
     st.rerun()
-
