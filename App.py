@@ -88,7 +88,7 @@ st.markdown("""
 # --- DATA ---
 @st.cache_resource
 def get_tournament_data():
-    return {str(i): [] for i in range(1, 26)}
+    return {str(i): [] for i in range(1, 21)} # Reduced to 20 Teams
 
 live_data = get_tournament_data()
 
@@ -151,39 +151,55 @@ if team_id:
 else:
     # --- DASHBOARD VIEW ---
     
-    # 1. AUTO-SCROLL COMPONENT (With session storage for smooth 5-second reruns)
+    # 1. UP/DOWN AUTO-SCROLL COMPONENT
     auto_scroll_js = """
     <script>
-        // Retrieve last scroll position from storage so it doesn't jump to the top every refresh
+        const parentDoc = window.parent.document;
+        // Locate the main scrollable section of the Streamlit app
+        const scrollContainer = parentDoc.querySelector('section.main') || parentDoc.querySelector('[data-testid="stAppViewContainer"]') || parentDoc.documentElement;
+
+        // Retrieve last scroll position and direction from storage
         let scrollPos = sessionStorage.getItem("dashboardScrollPos") || 0;
-        window.scrollTo(0, parseInt(scrollPos));
+        let scrollDir = sessionStorage.getItem("dashboardScrollDir") || "down";
+        scrollContainer.scrollTop = parseInt(scrollPos);
 
         function pageScroll() {
-            window.scrollBy(0, 1); // Adjust the '1' to change scroll speed
-            sessionStorage.setItem("dashboardScrollPos", window.scrollY);
-
-            // If we hit the absolute bottom, pause for 3 seconds then jump back to top
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
-                sessionStorage.setItem("dashboardScrollPos", 0);
-                setTimeout(function() {
-                    window.scrollTo(0,0);
-                }, 3000); 
+            // Scroll logic based on current direction
+            if (scrollDir === "down") {
+                scrollContainer.scrollTop += 1; // Increase for faster scrolling
+                // Check if hit the bottom
+                if (Math.ceil(scrollContainer.scrollTop + scrollContainer.clientHeight) >= scrollContainer.scrollHeight - 5) {
+                    scrollDir = "up";
+                }
+            } else {
+                scrollContainer.scrollTop -= 1; // Scroll up
+                // Check if hit the top
+                if (scrollContainer.scrollTop <= 0) {
+                    scrollDir = "down";
+                }
             }
-            setTimeout(pageScroll, 35); // Adjust '35' to change the frame rate/smoothness
+            
+            // Save state for the next refresh
+            sessionStorage.setItem("dashboardScrollPos", scrollContainer.scrollTop);
+            sessionStorage.setItem("dashboardScrollDir", scrollDir);
+            
+            setTimeout(pageScroll, 35); // Adjust '35' to change smoothness
         }
         
-        // Start scrolling
-        pageScroll();
+        // Give the DOM a tiny fraction of a second to load before starting
+        setTimeout(pageScroll, 200);
     </script>
     """
     components.html(auto_scroll_js, height=0, width=0)
 
     total_players = sum(len(names) for names in live_data.values())
-    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
-    st.progress(total_players / 50)
+    # Capped at 1.0 to prevent progress bar errors if more players somehow get forced in
+    progress_val = min(total_players / 40.0, 1.0) 
+    
+    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
+    st.progress(progress_val)
     
     # 2. THE "TOP PIN" HIGHLIGHT
-    # Only shows if someone joined in the last 15 seconds
     if 'latest_time' in st.session_state:
         if time.time() - st.session_state['latest_time'] < 15:
             st.markdown(f"""
@@ -194,15 +210,14 @@ else:
                 </div>
             """, unsafe_allow_html=True)
         else:
-            # Clear it after 15 seconds
             del st.session_state['latest_name']
             del st.session_state['latest_team']
             del st.session_state['latest_time']
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 3. THE GRID
-    for i in range(1, 26):
+    # 3. THE GRID (Adjusted to 20 Teams)
+    for i in range(1, 21):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
@@ -222,7 +237,7 @@ else:
         admin_pass = st.text_input("Passcode", type="password")
         if admin_pass == "noral2026":
             if st.button("Reset Entire Field"):
-                live_data.update({str(i): [] for i in range(1, 26)})
+                live_data.update({str(i): [] for i in range(1, 21)})
                 st.rerun()
 
     time.sleep(5)
