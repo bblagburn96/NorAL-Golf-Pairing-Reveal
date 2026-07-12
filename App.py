@@ -8,39 +8,68 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&display=swap');
     
+    /* --- KIOSK MODE OVERRIDES --- */
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        max-width: 98% !important; 
+    }
+    
     .stApp { background-color: #111827; color: #f3f4f6; }
     
     .header-box {
         text-align: center;
-        padding: 40px 10px;
+        padding: 10px 10px; 
         border-bottom: 2px solid #374151;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         background: linear-gradient(to bottom, #0f172a, #111827);
     }
 
     .main-title {
         font-family: 'Playfair Display', serif;
-        font-size: 2.8em;
+        font-size: 2.2em;
         color: #ffffff;
-        margin-bottom: 5px;
+        margin-bottom: 0px;
         font-style: italic;
     }
 
     .sub-title {
         font-family: 'Montserrat', sans-serif;
-        font-size: 0.85em;
+        font-size: 0.75em;
         text-transform: uppercase;
         letter-spacing: 4px;
         color: #9ca3af;
     }
     
-    .reveal-card {
-        background: #065f46; 
-        border: 2px solid #10b981;
-        padding: 30px;
-        margin-bottom: 30px;
-        border-radius: 8px;
+    /* --- 5x4 GRID LAYOUT FOR BIG SCREENS --- */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr); /* 5 Columns */
+        grid-template-rows: repeat(4, 1fr);    /* 4 Rows */
+        gap: 15px;
+        height: calc(100vh - 160px); /* Stretches to fill the TV perfectly */
+    }
+    
+    .team-card {
+        background: #1f2937;
+        border: 2px solid #374151; 
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         text-align: center;
+        padding: 5px;
+    }
+    
+    /* The Glow Effect for Newly Added Players */
+    .team-card.highlight {
+        background: #065f46;
+        border-color: #10b981;
         animation: pulse 2s infinite;
     }
 
@@ -50,26 +79,16 @@ st.markdown("""
         100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
     
-    .team-card {
-        background: #1f2937;
-        border-left: 4px solid #059669; 
-        padding: 24px;
-        margin-bottom: 16px;
-        border-radius: 4px;
-        text-align: center;
-        width: 100%;
-    }
-    
     .team-label {
         font-family: 'Montserrat', sans-serif;
         color: #9ca3af;
-        font-size: 0.75em;
+        font-size: 0.8em;
         font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
     }
 
-    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.4em; letter-spacing: 1px; }
+    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.1em; letter-spacing: 1px; }
     .empty-slot { color: #374151; font-weight: 400; }
     .filled-slot { color: #ffffff; font-weight: 700; } 
     
@@ -80,20 +99,6 @@ st.markdown("""
     }
     
     .stProgress > div > div > div > div { background-color: #059669; }
-    
-    /* --- CSS SCROLL ANIMATION CLASSES --- */
-    .scroll-window {
-        height: 65vh; /* Viewport height for the scrolling area */
-        overflow: hidden; 
-        position: relative;
-        /* Adds a fading effect at the top and bottom of the scroll list */
-        mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
-        -webkit-mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
-    }
-    .scroll-track {
-        display: flex;
-        flex-direction: column;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -112,7 +117,7 @@ params = st.query_params
 team_id = params.get("team_id")
 
 if team_id:
-    # --- REGISTRATION VIEW ---
+    # --- MOBILE REGISTRATION VIEW ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
     current_team = live_data.get(str(team_id), [])
@@ -150,8 +155,8 @@ if team_id:
                 st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
                 st.markdown(f"<h2 style='text-align:center; color:#10b981;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
                 
-                st.session_state['latest_name'] = name_entry
-                st.session_state['latest_team'] = team_id
+                # Register the time and team so the TV Dashboard knows to flash this box
+                st.session_state['latest_team'] = str(team_id)
                 st.session_state['latest_time'] = time.time()
                 
                 time.sleep(2.5)
@@ -159,76 +164,46 @@ if team_id:
                 st.rerun()
 
 else:
-    # --- DASHBOARD VIEW ---
+    # --- BIG SCREEN DASHBOARD VIEW ---
     
     total_players = sum(len(names) for names in live_data.values())
     progress_val = min(total_players / 40.0, 1.0) 
     
-    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
+    # Progress Bar
+    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.75em; letter-spacing:2px; margin-bottom:5px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(progress_val)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # 1. THE "TOP PIN" HIGHLIGHT
+    # Determine which team box should be highlighted (if updated in the last 10 seconds)
+    highlight_team = None
     if 'latest_time' in st.session_state:
-        if time.time() - st.session_state['latest_time'] < 15:
-            st.markdown(f"""
-                <div class='reveal-card'>
-                    <div style='color: #a7f3d0; font-size: 0.8em; font-weight: 700; letter-spacing: 2px;'>LATEST ENTRY</div>
-                    <div style='font-size: 2em; font-weight: 700; font-family: Montserrat;'>{st.session_state['latest_name']}</div>
-                    <div style='color: #a7f3d0; font-size: 1.2em; font-family: Playfair Display; font-style: italic;'>Confirmed for Team {st.session_state['latest_team']}</div>
-                </div>
-            """, unsafe_allow_html=True)
+        if time.time() - st.session_state['latest_time'] < 10:
+            highlight_team = st.session_state['latest_team']
         else:
-            del st.session_state['latest_name']
             del st.session_state['latest_team']
             del st.session_state['latest_time']
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 2. SEAMLESS NATIVE CSS SCROLLING CALCULATION
-    # Adjust this value to speed up or slow down the scrolling (in seconds)
-    scroll_duration_one_way = 35  
-    
-    current_timestamp = time.time()
-    total_loop_time = scroll_duration_one_way * 2
-    elapsed_in_loop = current_timestamp % total_loop_time
-    
-    st.markdown(f"""
-        <style>
-        .scroll-track {{
-            animation: scrollPingPong {scroll_duration_one_way}s linear infinite alternate;
-            animation-delay: -{elapsed_in_loop}s; /* Instantly catches up to where it should be after a rerun */
-        }}
-        @keyframes scrollPingPong {{
-            0% {{ transform: translateY(0); }}
-            100% {{ transform: translateY(calc(-100% + 65vh)); }} 
-        }}
-        </style>
-    """, unsafe_allow_html=True)
-
-    # 3. BUILD THE GRID HTML AS A SINGLE BLOCK
-    grid_html = "<div class='scroll-window'><div class='scroll-track'>"
+    # Build the 5x4 Grid 
+    grid_html = "<div class='grid-container'>"
     
     for i in range(1, 21):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
-        # Flattened HTML to prevent Markdown code block detection
-        card_class = "filled-slot" if p1 != "---" else "empty-slot"
-        card_class_2 = "filled-slot" if p2 != "---" else "empty-slot"
+        c1 = "filled-slot" if p1 != "---" else "empty-slot"
+        c2 = "filled-slot" if p2 != "---" else "empty-slot"
         
-        grid_html += f"<div class='team-card'><div class='team-label'>Team {i}</div><div class='player-row {card_class}'>{p1}</div><div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div><div class='player-row {card_class_2}'>{p2}</div></div>"
+        # Apply the glow effect if this is the team that was just registered
+        box_class = "team-card highlight" if str(i) == highlight_team else "team-card"
         
-    grid_html += "</div></div>"
+        grid_html += f"<div class='{box_class}'><div class='team-label'>Team {i}</div><div class='player-row {c1}'>{p1}</div><div style='border-top: 1px solid #374151; width: 40%; margin: 6px auto;'></div><div class='player-row {c2}'>{p2}</div></div>"
+        
+    grid_html += "</div>"
     
-    # Render the entire scrolling grid natively
+    # Render the entire grid
     st.markdown(grid_html, unsafe_allow_html=True)
 
-    # ADMIN
-    st.markdown("---")
-    with st.expander("Tournament Director"):
-        admin_pass = st.text_input("Passcode", type="password")
-        if admin_pass == "noral2026":
-            if st.button("Reset Entire Field"):
-                live_data.update({str(i): [] for i in range(1, 21)})
-                st.rerun()
+    # Invisible auto-refresh loop (checks for new registrations every 3 seconds)
+    time.sleep(3)
+    st.rerun()
