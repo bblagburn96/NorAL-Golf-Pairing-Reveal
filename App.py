@@ -1,6 +1,7 @@
+That is a brilliant fix. Using requestAnimationFrame instead of setTimeout is much smoother, and setting that window.parent.dashboardScrolling flag is exactly what was needed to prevent Streamlit's 5-second st.rerun() from spawning overlapping, conflicting scroll loops.
+Here is the complete, final code with your exact JavaScript integrated. I also cleaned up the unused pandas import since you are strictly using dictionaries for this version.
 import streamlit as st
 import streamlit.components.v1 as components
-import pandas as pd
 import time
 
 # --- FORMAL CLUBHOUSE THEME ---
@@ -88,7 +89,7 @@ st.markdown("""
 # --- DATA ---
 @st.cache_resource
 def get_tournament_data():
-    return {str(i): [] for i in range(1, 21)} # Reduced to 20 Teams
+    return {str(i): [] for i in range(1, 21)} # 20 Teams
 
 live_data = get_tournament_data()
 
@@ -151,49 +152,81 @@ if team_id:
 else:
     # --- DASHBOARD VIEW ---
     
-    # 1. UP/DOWN AUTO-SCROLL COMPONENT
+    # 1. UP/DOWN AUTO-SCROLL COMPONENT (With frame locking)
     auto_scroll_js = """
     <script>
-        const parentDoc = window.parent.document;
-        // Locate the main scrollable section of the Streamlit app
-        const scrollContainer = parentDoc.querySelector('section.main') || parentDoc.querySelector('[data-testid="stAppViewContainer"]') || parentDoc.documentElement;
+    (function() {
 
-        // Retrieve last scroll position and direction from storage
-        let scrollPos = sessionStorage.getItem("dashboardScrollPos") || 0;
+        const doc = window.parent.document;
+
+        function getScrollContainer() {
+            return (
+                doc.querySelector('[data-testid="stAppViewContainer"]') ||
+                doc.querySelector('[data-testid="stAppScrollToTopContainer"]') ||
+                doc.documentElement
+            );
+        }
+
+        const scrollContainer = getScrollContainer();
+
+        let scrollPos = Number(sessionStorage.getItem("dashboardScrollPos")) || 0;
         let scrollDir = sessionStorage.getItem("dashboardScrollDir") || "down";
-        scrollContainer.scrollTop = parseInt(scrollPos);
+
+        scrollContainer.scrollTop = scrollPos;
+
 
         function pageScroll() {
-            // Scroll logic based on current direction
+
+            const maxScroll =
+                scrollContainer.scrollHeight -
+                scrollContainer.clientHeight;
+
+
             if (scrollDir === "down") {
-                scrollContainer.scrollTop += 1; // Increase for faster scrolling
-                // Check if hit the bottom
-                if (Math.ceil(scrollContainer.scrollTop + scrollContainer.clientHeight) >= scrollContainer.scrollHeight - 5) {
+
+                scrollContainer.scrollTop += 2;
+
+                if (scrollContainer.scrollTop >= maxScroll - 5) {
                     scrollDir = "up";
                 }
+
             } else {
-                scrollContainer.scrollTop -= 1; // Scroll up
-                // Check if hit the top
-                if (scrollContainer.scrollTop <= 0) {
+
+                scrollContainer.scrollTop -= 2;
+
+                if (scrollContainer.scrollTop <= 5) {
                     scrollDir = "down";
                 }
             }
-            
-            // Save state for the next refresh
-            sessionStorage.setItem("dashboardScrollPos", scrollContainer.scrollTop);
-            sessionStorage.setItem("dashboardScrollDir", scrollDir);
-            
-            setTimeout(pageScroll, 35); // Adjust '35' to change smoothness
+
+
+            sessionStorage.setItem(
+                "dashboardScrollPos",
+                scrollContainer.scrollTop
+            );
+
+            sessionStorage.setItem(
+                "dashboardScrollDir",
+                scrollDir
+            );
+
+
+            requestAnimationFrame(pageScroll);
         }
-        
-        // Give the DOM a tiny fraction of a second to load before starting
-        setTimeout(pageScroll, 200);
+
+
+        if (!window.parent.dashboardScrolling) {
+            window.parent.dashboardScrolling = true;
+            requestAnimationFrame(pageScroll);
+        }
+
+    })();
     </script>
     """
     components.html(auto_scroll_js, height=0, width=0)
 
     total_players = sum(len(names) for names in live_data.values())
-    # Capped at 1.0 to prevent progress bar errors if more players somehow get forced in
+    # Capped at 1.0 to prevent progress bar errors
     progress_val = min(total_players / 40.0, 1.0) 
     
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
@@ -242,3 +275,4 @@ else:
 
     time.sleep(5)
     st.rerun()
+
