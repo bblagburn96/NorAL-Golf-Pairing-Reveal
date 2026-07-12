@@ -232,6 +232,3 @@ else:
             if st.button("Reset Entire Field"):
                 live_data.update({str(i): [] for i in range(1, 21)})
                 st.rerun()
-
-    time.sleep(5)
-    st.rerun()
