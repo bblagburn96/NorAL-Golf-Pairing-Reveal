@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import time
 
@@ -149,11 +150,39 @@ if team_id:
 
 else:
     # --- DASHBOARD VIEW ---
+    
+    # 1. AUTO-SCROLL COMPONENT (With session storage for smooth 5-second reruns)
+    auto_scroll_js = """
+    <script>
+        // Retrieve last scroll position from storage so it doesn't jump to the top every refresh
+        let scrollPos = sessionStorage.getItem("dashboardScrollPos") || 0;
+        window.scrollTo(0, parseInt(scrollPos));
+
+        function pageScroll() {
+            window.scrollBy(0, 1); // Adjust the '1' to change scroll speed
+            sessionStorage.setItem("dashboardScrollPos", window.scrollY);
+
+            // If we hit the absolute bottom, pause for 3 seconds then jump back to top
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+                sessionStorage.setItem("dashboardScrollPos", 0);
+                setTimeout(function() {
+                    window.scrollTo(0,0);
+                }, 3000); 
+            }
+            setTimeout(pageScroll, 35); // Adjust '35' to change the frame rate/smoothness
+        }
+        
+        // Start scrolling
+        pageScroll();
+    </script>
+    """
+    components.html(auto_scroll_js, height=0, width=0)
+
     total_players = sum(len(names) for names in live_data.values())
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 50 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(total_players / 50)
     
-    # 1. THE "TOP PIN" HIGHLIGHT
+    # 2. THE "TOP PIN" HIGHLIGHT
     # Only shows if someone joined in the last 15 seconds
     if 'latest_time' in st.session_state:
         if time.time() - st.session_state['latest_time'] < 15:
@@ -172,7 +201,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 2. THE GRID
+    # 3. THE GRID
     for i in range(1, 26):
         members = live_data[str(i)]
         p1 = members[0] if len(members) > 0 else "---"
