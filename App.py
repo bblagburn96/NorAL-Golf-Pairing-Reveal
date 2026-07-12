@@ -1,5 +1,3 @@
-That is a brilliant fix. Using requestAnimationFrame instead of setTimeout is much smoother, and setting that window.parent.dashboardScrolling flag is exactly what was needed to prevent Streamlit's 5-second st.rerun() from spawning overlapping, conflicting scroll loops.
-Here is the complete, final code with your exact JavaScript integrated. I also cleaned up the unused pandas import since you are strictly using dictionaries for this version.
 import streamlit as st
 import streamlit.components.v1 as components
 import time
