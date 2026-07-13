@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import random
 
 # --- CONFIGURATION & STYLING ---
 st.set_page_config(
@@ -8,196 +9,181 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Core UI CSS and Kiosk Overrides
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&display=swap');
     
-    /* Kiosk Mode Overrides */
-    header {visibility: hidden;} 
-    #MainMenu {visibility: hidden;} 
-    footer {visibility: hidden;}
+    /* Global Overrides */
+    header {visibility: hidden;} #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     .block-container { padding: 1rem !important; max-width: 98% !important; }
-    
-    /* App Colors & Typography */
     .stApp { background-color: #111827; color: #f3f4f6; }
     
-    .header-box { 
-        text-align: center; 
-        padding: 10px; 
-        border-bottom: 2px solid #374151; 
-        margin-bottom: 15px; 
-        background: linear-gradient(to bottom, #0f172a, #111827); 
-    }
-    .main-title { 
-        font-family: 'Playfair Display', serif; 
-        font-size: 2.4em; 
-        color: #ffffff; 
-        font-style: italic; 
-        margin-bottom: 0px;
-    }
-    .sub-title { 
-        font-family: 'Montserrat', sans-serif; 
-        font-size: 0.75em; 
-        text-transform: uppercase; 
-        letter-spacing: 4px; 
-        color: #9ca3af; 
-    }
+    /* Header Typography */
+    .header-box { text-align: center; padding: 15px; border-bottom: 2px solid #374151; margin-bottom: 20px; background: linear-gradient(to bottom, #0f172a, #111827); }
+    .main-title { font-family: 'Playfair Display', serif; font-size: 2.8em; color: #ffffff; font-style: italic; margin-bottom: 0px; line-height: 1.1; }
+    .sub-title { font-family: 'Montserrat', sans-serif; font-size: 0.85em; text-transform: uppercase; letter-spacing: 4px; color: #10b981; margin-top: 5px; }
     
-    /* Grid System */
-    .grid-container { 
+    /* Responsive Grid System (Works on TV and Mobile) */
+    .dynamic-grid { 
         display: grid; 
-        grid-template-columns: repeat(5, 1fr); 
-        grid-template-rows: repeat(4, 1fr); 
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
         gap: 15px; 
-        height: calc(100vh - 180px); 
-    }
-    .team-card { 
-        background: #1f2937; 
-        border: 2px solid #374151; 
-        border-radius: 6px; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: center; 
-        align-items: center; 
-        padding: 5px; 
     }
     
-    /* Highlight Animation */
-    .team-card.highlight { 
-        background: #065f46; 
-        border-color: #10b981; 
-        animation: pulse 2s infinite; 
-    }
-    @keyframes pulse { 
-        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 
-        70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 
-        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } 
-    }
+    /* Cards and Slots */
+    .card { background: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
+    .team-label { font-family: 'Montserrat', sans-serif; font-size: 0.85em; color: #9ca3af; text-transform: uppercase; font-weight: bold; margin-bottom: 10px; letter-spacing: 1px; }
+    .player-name { font-family: 'Montserrat', sans-serif; font-size: 1.2em; font-weight: bold; color: #ffffff; margin: 4px 0; }
     
-    /* Typography inside cards */
-    .team-label { font-family: 'Montserrat', sans-serif; font-size: 0.8em; color: #9ca3af; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
-    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.1em; font-weight: bold; margin: 2px 0; }
-    .empty-slot { color: #374151; font-weight: normal; }
-    .filled-slot { color: #ffffff; }
+    /* Unified Pool Styling */
+    .pool-slot { background: #1f2937; border: 1px dashed #374151; border-radius: 4px; padding: 10px; text-align: center; font-family: 'Montserrat', sans-serif; font-weight: bold; }
+    .pool-slot.filled { border: 1px solid #10b981; color: #ffffff; background: #064e3b; }
+    .pool-slot.empty { color: #4b5563; }
     
-    /* Buttons and Progress */
-    .stButton>button { background-color: #059669; color: white; font-weight: 700; border-radius: 4px; border: none; width: 100%; height: 3.5em; text-transform: uppercase; letter-spacing: 2px; }
-    .stProgress > div > div > div > div { background-color: #059669; }
+    /* Forms & Buttons */
+    .stTextInput>div>div>input { background-color: #1f2937; color: white; border: 1px solid #374151; border-radius: 6px; padding: 12px; font-size: 1.1em; }
+    .stButton>button { background-color: #10b981; color: #111827; font-weight: 700; border-radius: 6px; border: none; width: 100%; height: 3.5em; text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s ease; }
+    .stButton>button:hover { background-color: #059669; color: white; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- DATA MANAGEMENT ---
+# --- GLOBAL DATA STATE ---
 @st.cache_resource
-def get_tournament_data():
-    """Initializes and persists the 20-team roster framework across sessions."""
-    return {str(i): [] for i in range(1, 21)} 
+def get_tournament_state():
+    """Manages the lifecycle from single pool registration to paired teams."""
+    return {
+        "players": [],       # The single, unified player pool (up to 40)
+        "teams": {},         # Dictionary of 20 teams (empty until generated)
+        "status": "open"     # Modes: 'open' (registering) or 'paired' (reveal)
+    }
 
-live_data = get_tournament_data()
+state = get_tournament_state()
 
-# --- FRAGMENTED DASHBOARD LOOP ---
+# --- LIVE DASHBOARD FRAGMENT ---
 @st.fragment(run_every=3)
 def display_dashboard():
-    """Renders the 5x4 grid and manages the 3-second silent refresh cycle."""
-    total_players = sum(len(names) for names in live_data.values())
-    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.75em; letter-spacing:2px; margin-bottom:5px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
-    st.progress(min(total_players / 40.0, 1.0))
-    st.markdown("<br>", unsafe_allow_html=True)
+    """Silently refreshes the display without reloading the browser."""
     
-    # Highlight Logic for New Entries
-    highlight_team = st.session_state.get('latest_team')
-    if 'latest_time' in st.session_state and (time.time() - st.session_state['latest_time'] > 10):
-        del st.session_state['latest_team']
-        del st.session_state['latest_time']
-        highlight_team = None
+    if state["status"] == "open":
+        # PHASE 1: THE UNIFIED POOL
+        st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:3px;'>LIVE UNIFIED PLAYER POOL: {len(state['players'])} / 40</p>", unsafe_allow_html=True)
+        st.progress(min(len(state['players']) / 40.0, 1.0))
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        grid_html = "<div class='dynamic-grid'>"
+        for i in range(40):
+            if i < len(state["players"]):
+                grid_html += f"<div class='pool-slot filled'>{state['players'][i]}</div>"
+            else:
+                grid_html += f"<div class='pool-slot empty'>Slot {i+1}</div>"
+        grid_html += "</div>"
+        st.markdown(grid_html, unsafe_allow_html=True)
 
-    # Render Grid Natively via CSS/HTML
-    grid_html = "<div class='grid-container'>"
-    for i in range(1, 21):
-        members = live_data[str(i)]
-        p1 = members[0] if len(members) > 0 else "---"
-        p2 = members[1] if len(members) > 1 else "---"
+    elif state["status"] == "paired":
+        # PHASE 2: THE OFFICIAL PAIRINGS
+        st.markdown("<p style='text-align:center; color:#10b981; font-size:0.85em; letter-spacing:3px; font-weight:bold;'>OFFICIAL TOURNAMENT PAIRINGS LOCKED</p><br>", unsafe_allow_html=True)
         
-        c1 = "filled-slot" if p1 != "---" else "empty-slot"
-        c2 = "filled-slot" if p2 != "---" else "empty-slot"
-        
-        box_class = "team-card highlight" if str(i) == highlight_team else "team-card"
-        
-        grid_html += f"""
-        <div class='{box_class}'>
-            <div class='team-label'>Team {i}</div>
-            <div class='player-row {c1}'>{p1}</div>
-            <div style='border-top: 1px solid #374151; width: 40%; margin: 6px auto;'></div>
-            <div class='player-row {c2}'>{p2}</div>
-        </div>"""
-        
-    grid_html += "</div>"
-    st.markdown(grid_html, unsafe_allow_html=True)
+        grid_html = "<div class='dynamic-grid'>"
+        for i in range(1, 21):
+            team_members = state["teams"].get(str(i), [])
+            p1 = team_members[0] if len(team_members) > 0 else "---"
+            p2 = team_members[1] if len(team_members) > 1 else "---"
+            
+            grid_html += f"""
+            <div class='card'>
+                <div class='team-label'>Team {i}</div>
+                <div class='player-name'>{p1}</div>
+                <div style='border-top: 1px solid #374151; width: 60%; margin: 8px auto;'></div>
+                <div class='player-name'>{p2}</div>
+            </div>"""
+        grid_html += "</div>"
+        st.markdown(grid_html, unsafe_allow_html=True)
 
-# --- MAIN APP LAYOUT ---
+# --- MAIN APPLICATION ROUTING ---
 st.markdown("""
     <div class='header-box'>
         <div class='main-title'>3rd Annual NorAL Golf Invitational</div>
-        <div class='sub-title'>Eagle's Nest Golf Course &bull; July 25, 2026</div>
+        <div class='sub-title'>Eagle's Nest &bull; July 25, 2026</div>
     </div>
 """, unsafe_allow_html=True)
 
-# Check if the user is hitting the registration URL
-is_registering = st.query_params.get("register")
+# Check if user is accessing via the mobile QR code
+is_mobile_entry = st.query_params.get("register")
 
-if is_registering:
-    # --- REGISTRATION VIEW (Mobile) ---
-    st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
-    
-    total_players = sum(len(names) for names in live_data.values())
-    
-    if total_players >= 40:
-        st.error("The tournament field is currently full (40/40).")
-    else:
-        st.markdown("<p style='text-align:center; color:#9ca3af;'>Enter your name below to secure your spot in the unified player pool.</p>", unsafe_allow_html=True)
-        name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
-        
-        if st.button("Confirm Entry"):
-            all_names = [name.lower() for team in live_data.values() for name in team]
+if is_mobile_entry:
+    # --- MOBILE REGISTRATION VIEW ---
+    if state["status"] == "paired":
+        st.error("Registration is closed. The field has been locked and paired.")
+        if st.button("View Live Dashboard"):
+            st.query_params.clear()
+            st.rerun()
             
-            if not name_entry:
-                st.error("Please enter a name.")
-            elif name_entry.lower() in all_names:
-                st.error(f"'{name_entry}' is already registered in the field!")
-            else:
-                # Find the first available team automatically from the unified pool
-                assigned_team = None
-                for i in range(1, 21):
-                    if len(live_data[str(i)]) < 2:
-                        assigned_team = str(i)
-                        break
+    elif len(state["players"]) >= 40:
+        st.error("The tournament field is currently full (40/40).")
+        if st.button("View Live Dashboard"):
+            st.query_params.clear()
+            st.rerun()
+            
+    else:
+        st.markdown("<h3 style='text-align:center; font-family:Playfair Display; margin-bottom: 5px;'>Player Entry</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#9ca3af; margin-bottom: 25px;'>Enter your name to join the unified tournament pool.</p>", unsafe_allow_html=True)
+        
+        # Centered form container for better mobile UX
+        col1, col2, col3 = st.columns([1, 4, 1])
+        with col2:
+            name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
+            
+            if st.button("Secure My Spot"):
+                clean_name = name_entry.strip()
+                existing_names = [n.lower() for n in state["players"]]
                 
-                # Lock them in
-                live_data[assigned_team].append(name_entry.strip())
-                st.session_state.update({
-                    'latest_team': assigned_team, 
-                    'latest_time': time.time()
-                })
-                
-                # Show them their team number
-                st.success(f"Success! You have been assigned to Team {assigned_team}.")
-                time.sleep(3) 
-                
-                # Reset the view to transition to the main dashboard
-                st.query_params.clear()
-                st.rerun()
+                if not clean_name:
+                    st.error("Please enter a valid name.")
+                elif clean_name.lower() in existing_names:
+                    st.error(f"'{clean_name}' is already in the player pool!")
+                else:
+                    state["players"].append(clean_name)
+                    st.success("Spot secured! Sending you to the live dashboard...")
+                    time.sleep(2.5) # Allow player to read success message
+                    st.query_params.clear() # Route them to the dashboard
+                    st.rerun()
 
 else:
-    # --- DASHBOARD VIEW (Big Screen) ---
+    # --- KIOSK / MAIN DASHBOARD VIEW ---
     display_dashboard()
     
-    # --- ADMIN CONTROLS ---
+    # --- TOURNAMENT DIRECTOR CONTROLS ---
     st.markdown("---")
-    with st.expander("Tournament Director"):
-        admin_pass = st.text_input("Passcode", type="password")
+    with st.expander("Tournament Director Operations"):
+        admin_pass = st.text_input("Passcode", type="password", key="admin_auth")
+        
         if admin_pass == "noral2026":
-            if st.button("Reset Entire Field"):
-                live_data.update({str(i): [] for i in range(1, 21)})
-                st.success("Field has been reset.")
-                time.sleep(1)
-                st.rerun()
+            colA, colB = st.columns(2)
+            
+            with colA:
+                if state["status"] == "open":
+                    if st.button("Lock Field & Generate Pairings"):
+                        # Execute pairing logic from the unified pool
+                        pool = state["players"].copy()
+                        random.shuffle(pool) # Baseline randomization
+                        
+                        # Distribute into 20 teams of 2
+                        new_teams = {str(i): [] for i in range(1, 21)}
+                        team_index = 1
+                        for player in pool:
+                            new_teams[str(team_index)].append(player)
+                            if len(new_teams[str(team_index)]) == 2:
+                                team_index += 1
+                                
+                        state["teams"] = new_teams
+                        state["status"] = "paired"
+                        st.rerun()
+                else:
+                    st.info("Field is locked and paired.")
+                    
+            with colB:
+                if st.button("Factory Reset (Clear All Data)", type="primary"):
+                    state["players"] = []
+                    state["teams"] = {}
+                    state["status"] = "open"
+                    st.rerun()
