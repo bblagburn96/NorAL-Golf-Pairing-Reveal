@@ -154,7 +154,7 @@ if is_registering:
     if total_players >= 40:
         st.error("The tournament field is currently full (40/40).")
     else:
-        st.markdown("<p style='text-align:center; color:#9ca3af;'>Enter your name below to secure your spot in the field.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#9ca3af;'>Enter your name below to secure your spot in the unified player pool.</p>", unsafe_allow_html=True)
         name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
         
         if st.button("Confirm Entry"):
@@ -165,7 +165,7 @@ if is_registering:
             elif name_entry.lower() in all_names:
                 st.error(f"'{name_entry}' is already registered in the field!")
             else:
-                # Find the first available team automatically
+                # Find the first available team automatically from the unified pool
                 assigned_team = None
                 for i in range(1, 21):
                     if len(live_data[str(i)]) < 2:
@@ -181,9 +181,9 @@ if is_registering:
                 
                 # Show them their team number
                 st.success(f"Success! You have been assigned to Team {assigned_team}.")
-                time.sleep(3) # Pause so they have time to read the message on their phone
+                time.sleep(3) 
                 
-                # Reset the view
+                # Reset the view to transition to the main dashboard
                 st.query_params.clear()
                 st.rerun()
 
