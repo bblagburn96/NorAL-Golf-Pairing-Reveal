@@ -99,7 +99,6 @@ live_data = get_tournament_data()
 @st.fragment(run_every=3)
 def display_dashboard():
     """Renders the 5x4 grid and manages the 3-second silent refresh cycle."""
-    # Progress Bar Calculations
     total_players = sum(len(names) for names in live_data.values())
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.75em; letter-spacing:2px; margin-bottom:5px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
     st.progress(min(total_players / 40.0, 1.0))
@@ -124,7 +123,6 @@ def display_dashboard():
         
         box_class = "team-card highlight" if str(i) == highlight_team else "team-card"
         
-        # Using multi-line string mapping to prevent string concatenation breaks
         grid_html += f"""
         <div class='{box_class}'>
             <div class='team-label'>Team {i}</div>
@@ -144,22 +142,19 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Safely extract routing parameters
-team_id = st.query_params.get("team_id")
+# Check if the user is hitting the registration URL
+is_registering = st.query_params.get("register")
 
-if team_id:
+if is_registering:
     # --- REGISTRATION VIEW (Mobile) ---
     st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
-    current_team = live_data.get(str(team_id), [])
+    total_players = sum(len(names) for names in live_data.values())
     
-    if len(current_team) >= 2:
-        st.warning(f"Team {team_id} is already full.")
-        if st.button("Return to Field"):
-            st.query_params.clear()
-            st.rerun()
+    if total_players >= 40:
+        st.error("The tournament field is currently full (40/40).")
     else:
-        st.markdown(f"<p style='text-align:center; color:#9ca3af;'>You are securing a spot on <b>Team {team_id}</b>.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#9ca3af;'>Enter your name below to secure your spot in the field.</p>", unsafe_allow_html=True)
         name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
         
         if st.button("Confirm Entry"):
@@ -170,13 +165,25 @@ if team_id:
             elif name_entry.lower() in all_names:
                 st.error(f"'{name_entry}' is already registered in the field!")
             else:
-                live_data[str(team_id)].append(name_entry.strip())
+                # Find the first available team automatically
+                assigned_team = None
+                for i in range(1, 21):
+                    if len(live_data[str(i)]) < 2:
+                        assigned_team = str(i)
+                        break
+                
+                # Lock them in
+                live_data[assigned_team].append(name_entry.strip())
                 st.session_state.update({
-                    'latest_team': str(team_id), 
+                    'latest_team': assigned_team, 
                     'latest_time': time.time()
                 })
-                st.success("Registration Successful!")
-                time.sleep(1.5)
+                
+                # Show them their team number
+                st.success(f"Success! You have been assigned to Team {assigned_team}.")
+                time.sleep(3) # Pause so they have time to read the message on their phone
+                
+                # Reset the view
                 st.query_params.clear()
                 st.rerun()
 
