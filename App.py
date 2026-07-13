@@ -1,189 +1,237 @@
 import streamlit as st
 import time
-import random
 
-# --- CONFIGURATION & STYLING ---
-st.set_page_config(
-    page_title="NorAL Golf Invitational",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# --- FORMAL CLUBHOUSE THEME ---
+st.set_page_config(page_title="2026 NorAL Golf Invitational", layout="wide")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&display=swap');
     
-    /* Global Overrides */
-    header {visibility: hidden;} #MainMenu {visibility: hidden;} footer {visibility: hidden;}
-    .block-container { padding: 1rem !important; max-width: 98% !important; }
     .stApp { background-color: #111827; color: #f3f4f6; }
     
-    /* Header Typography */
-    .header-box { text-align: center; padding: 15px; border-bottom: 2px solid #374151; margin-bottom: 20px; background: linear-gradient(to bottom, #0f172a, #111827); }
-    .main-title { font-family: 'Playfair Display', serif; font-size: 2.8em; color: #ffffff; font-style: italic; margin-bottom: 0px; line-height: 1.1; }
-    .sub-title { font-family: 'Montserrat', sans-serif; font-size: 0.85em; text-transform: uppercase; letter-spacing: 4px; color: #10b981; margin-top: 5px; }
-    
-    /* Responsive Grid System (Works on TV and Mobile) */
-    .dynamic-grid { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-        gap: 15px; 
+    .header-box {
+        text-align: center;
+        padding: 40px 10px;
+        border-bottom: 2px solid #374151;
+        margin-bottom: 20px;
+        background: linear-gradient(to bottom, #0f172a, #111827);
+    }
+
+    .main-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.8em;
+        color: #ffffff;
+        margin-bottom: 5px;
+        font-style: italic;
+    }
+
+    .sub-title {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.85em;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        color: #9ca3af;
     }
     
-    /* Cards and Slots */
-    .card { background: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
-    .team-label { font-family: 'Montserrat', sans-serif; font-size: 0.85em; color: #9ca3af; text-transform: uppercase; font-weight: bold; margin-bottom: 10px; letter-spacing: 1px; }
-    .player-name { font-family: 'Montserrat', sans-serif; font-size: 1.2em; font-weight: bold; color: #ffffff; margin: 4px 0; }
+    .reveal-card {
+        background: #065f46; 
+        border: 2px solid #10b981;
+        padding: 30px;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        text-align: center;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+        70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
     
-    /* Unified Pool Styling */
-    .pool-slot { background: #1f2937; border: 1px dashed #374151; border-radius: 4px; padding: 10px; text-align: center; font-family: 'Montserrat', sans-serif; font-weight: bold; }
-    .pool-slot.filled { border: 1px solid #10b981; color: #ffffff; background: #064e3b; }
-    .pool-slot.empty { color: #4b5563; }
+    .team-card {
+        background: #1f2937;
+        border-left: 4px solid #059669; 
+        padding: 24px;
+        margin-bottom: 16px;
+        border-radius: 4px;
+        text-align: center;
+        width: 100%;
+    }
     
-    /* Forms & Buttons */
-    .stTextInput>div>div>input { background-color: #1f2937; color: white; border: 1px solid #374151; border-radius: 6px; padding: 12px; font-size: 1.1em; }
-    .stButton>button { background-color: #10b981; color: #111827; font-weight: 700; border-radius: 6px; border: none; width: 100%; height: 3.5em; text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s ease; }
-    .stButton>button:hover { background-color: #059669; color: white; }
+    .team-label {
+        font-family: 'Montserrat', sans-serif;
+        color: #9ca3af;
+        font-size: 0.75em;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+
+    .player-row { font-family: 'Montserrat', sans-serif; font-size: 1.4em; letter-spacing: 1px; }
+    .empty-slot { color: #374151; font-weight: 400; }
+    .filled-slot { color: #ffffff; font-weight: 700; } 
+    
+    .stButton>button { 
+        background-color: #059669; color: white; font-weight: 700; 
+        border-radius: 4px; border: none; width: 100%; height: 3.8em;
+        text-transform: uppercase; letter-spacing: 2px;
+    }
+    
+    .stProgress > div > div > div > div { background-color: #059669; }
+    
+    /* --- CSS SCROLL ANIMATION CLASSES --- */
+    .scroll-window {
+        height: 65vh; /* Viewport height for the scrolling area */
+        overflow: hidden; 
+        position: relative;
+        /* Adds a fading effect at the top and bottom of the scroll list */
+        mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
+    }
+    .scroll-track {
+        display: flex;
+        flex-direction: column;
+    }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- GLOBAL DATA STATE ---
+# --- DATA ---
 @st.cache_resource
-def get_tournament_state():
-    """Manages the lifecycle from single pool registration to paired teams."""
-    return {
-        "players": [],       # The single, unified player pool (up to 40)
-        "teams": {},         # Dictionary of 20 teams (empty until generated)
-        "status": "open"     # Modes: 'open' (registering) or 'paired' (reveal)
-    }
+def get_tournament_data():
+    return {str(i): [] for i in range(1, 21)} 
 
-state = get_tournament_state()
+live_data = get_tournament_data()
 
-# --- LIVE DASHBOARD FRAGMENT ---
-@st.fragment(run_every=3)
-def display_dashboard():
-    """Silently refreshes the display without reloading the browser."""
+# --- HEADER ---
+st.markdown("<div class='header-box'><div class='main-title'>NorAL Golf Invitational</div><div class='sub-title'>2026 Team Selection</div></div>", unsafe_allow_html=True)
+
+# --- NAVIGATION ---
+params = st.query_params
+team_id = params.get("team_id")
+
+if team_id:
+    # --- REGISTRATION VIEW ---
+    st.markdown("<h2 style='text-align:center; font-family:Playfair Display;'>Official Tournament Entry</h2>", unsafe_allow_html=True)
     
-    if state["status"] == "open":
-        # PHASE 1: THE UNIFIED POOL
-        st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:3px;'>LIVE UNIFIED PLAYER POOL: {len(state['players'])} / 40</p>", unsafe_allow_html=True)
-        st.progress(min(len(state['players']) / 40.0, 1.0))
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        grid_html = "<div class='dynamic-grid'>"
-        for i in range(40):
-            if i < len(state["players"]):
-                grid_html += f"<div class='pool-slot filled'>{state['players'][i]}</div>"
-            else:
-                grid_html += f"<div class='pool-slot empty'>Slot {i+1}</div>"
-        grid_html += "</div>"
-        st.markdown(grid_html, unsafe_allow_html=True)
-
-    elif state["status"] == "paired":
-        # PHASE 2: THE OFFICIAL PAIRINGS
-        st.markdown("<p style='text-align:center; color:#10b981; font-size:0.85em; letter-spacing:3px; font-weight:bold;'>OFFICIAL TOURNAMENT PAIRINGS LOCKED</p><br>", unsafe_allow_html=True)
-        
-        grid_html = "<div class='dynamic-grid'>"
-        for i in range(1, 21):
-            team_members = state["teams"].get(str(i), [])
-            p1 = team_members[0] if len(team_members) > 0 else "---"
-            p2 = team_members[1] if len(team_members) > 1 else "---"
-            
-            grid_html += f"""
-            <div class='card'>
-                <div class='team-label'>Team {i}</div>
-                <div class='player-name'>{p1}</div>
-                <div style='border-top: 1px solid #374151; width: 60%; margin: 8px auto;'></div>
-                <div class='player-name'>{p2}</div>
-            </div>"""
-        grid_html += "</div>"
-        st.markdown(grid_html, unsafe_allow_html=True)
-
-# --- MAIN APPLICATION ROUTING ---
-st.markdown("""
-    <div class='header-box'>
-        <div class='main-title'>3rd Annual NorAL Golf Invitational</div>
-        <div class='sub-title'>Eagle's Nest &bull; July 25, 2026</div>
-    </div>
-""", unsafe_allow_html=True)
-
-# Check if user is accessing via the mobile QR code
-is_mobile_entry = st.query_params.get("register")
-
-if is_mobile_entry:
-    # --- MOBILE REGISTRATION VIEW ---
-    if state["status"] == "paired":
-        st.error("Registration is closed. The field has been locked and paired.")
-        if st.button("View Live Dashboard"):
+    current_team = live_data.get(str(team_id), [])
+    
+    if len(current_team) >= 2:
+        st.warning(f"Team {team_id} is already full.")
+        st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[0]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='player-row filled-slot' style='text-align:center;'>{current_team[1]}</div>", unsafe_allow_html=True)
+        if st.button("Return to Field"):
             st.query_params.clear()
             st.rerun()
-            
-    elif len(state["players"]) >= 40:
-        st.error("The tournament field is currently full (40/40).")
-        if st.button("View Live Dashboard"):
-            st.query_params.clear()
-            st.rerun()
-            
     else:
-        st.markdown("<h3 style='text-align:center; font-family:Playfair Display; margin-bottom: 5px;'>Player Entry</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#9ca3af; margin-bottom: 25px;'>Enter your name to join the unified tournament pool.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#9ca3af;'>Identify yourself to join the field.</p>", unsafe_allow_html=True)
+        name_entry = st.text_input("Full Name", placeholder="First & Last Name", key="reg_input", label_visibility="collapsed")
         
-        # Centered form container for better mobile UX
-        col1, col2, col3 = st.columns([1, 4, 1])
-        with col2:
-            name_entry = st.text_input("Full Name", placeholder="First & Last Name", label_visibility="collapsed")
+        if st.button("Confirm Entry"):
+            all_names = [name.lower() for team in live_data.values() for name in team]
             
-            if st.button("Secure My Spot"):
-                clean_name = name_entry.strip()
-                existing_names = [n.lower() for n in state["players"]]
+            if not name_entry:
+                st.error("Please enter a name.")
+            elif name_entry.lower() in all_names:
+                st.error(f"'{name_entry}' is already registered in the field!")
+            else:
+                live_data[str(team_id)].append(name_entry.strip())
                 
-                if not clean_name:
-                    st.error("Please enter a valid name.")
-                elif clean_name.lower() in existing_names:
-                    st.error(f"'{clean_name}' is already in the player pool!")
-                else:
-                    state["players"].append(clean_name)
-                    st.success("Spot secured! Sending you to the live dashboard...")
-                    time.sleep(2.5) # Allow player to read success message
-                    st.query_params.clear() # Route them to the dashboard
-                    st.rerun()
+                placeholder = st.empty()
+                with placeholder.container():
+                    st.markdown(f"<h3 style='text-align:center;'>Assigning Team Position...</h3>", unsafe_allow_html=True)
+                    pb = st.progress(0)
+                    for p in range(100):
+                        time.sleep(0.01)
+                        pb.progress(p + 1)
+                
+                placeholder.empty()
+                st.toast(f"Welcome to Team {team_id}, {name_entry}!", icon="⛳")
+                st.markdown(f"<h2 style='text-align:center; color:#10b981;'>Confirmed: Team {team_id}</h2>", unsafe_allow_html=True)
+                
+                st.session_state['latest_name'] = name_entry
+                st.session_state['latest_team'] = team_id
+                st.session_state['latest_time'] = time.time()
+                
+                time.sleep(2.5)
+                st.query_params.clear()
+                st.rerun()
 
 else:
-    # --- KIOSK / MAIN DASHBOARD VIEW ---
-    display_dashboard()
+    # --- DASHBOARD VIEW ---
     
-    # --- TOURNAMENT DIRECTOR CONTROLS ---
-    st.markdown("---")
-    with st.expander("Tournament Director Operations"):
-        admin_pass = st.text_input("Passcode", type="password", key="admin_auth")
+    total_players = sum(len(names) for names in live_data.values())
+    progress_val = min(total_players / 40.0, 1.0) 
+    
+    st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.85em; letter-spacing:2px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
+    st.progress(progress_val)
+    
+    # 1. THE "TOP PIN" HIGHLIGHT
+    if 'latest_time' in st.session_state:
+        if time.time() - st.session_state['latest_time'] < 15:
+            st.markdown(f"""
+                <div class='reveal-card'>
+                    <div style='color: #a7f3d0; font-size: 0.8em; font-weight: 700; letter-spacing: 2px;'>LATEST ENTRY</div>
+                    <div style='font-size: 2em; font-weight: 700; font-family: Montserrat;'>{st.session_state['latest_name']}</div>
+                    <div style='color: #a7f3d0; font-size: 1.2em; font-family: Playfair Display; font-style: italic;'>Confirmed for Team {st.session_state['latest_team']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            del st.session_state['latest_name']
+            del st.session_state['latest_team']
+            del st.session_state['latest_time']
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 2. SEAMLESS NATIVE CSS SCROLLING CALCULATION
+    # Adjust this value to speed up or slow down the scrolling (in seconds)
+    scroll_duration_one_way = 35  
+    
+    current_timestamp = time.time()
+    total_loop_time = scroll_duration_one_way * 2
+    elapsed_in_loop = current_timestamp % total_loop_time
+    
+    st.markdown(f"""
+        <style>
+        .scroll-track {{
+            animation: scrollPingPong {scroll_duration_one_way}s linear infinite alternate;
+            animation-delay: -{elapsed_in_loop}s; /* Instantly catches up to where it should be after a rerun */
+        }}
+        @keyframes scrollPingPong {{
+            0% {{ transform: translateY(0); }}
+            100% {{ transform: translateY(calc(-100% + 65vh)); }} 
+        }}
+        </style>
+    """, unsafe_allow_html=True)
+
+    # 3. BUILD THE GRID HTML AS A SINGLE BLOCK
+    grid_html = "<div class='scroll-window'><div class='scroll-track'>"
+    
+    for i in range(1, 21):
+        members = live_data[str(i)]
+        p1 = members[0] if len(members) > 0 else "---"
+        p2 = members[1] if len(members) > 1 else "---"
         
+        # Flattened HTML to prevent Markdown code block detection
+        card_class = "filled-slot" if p1 != "---" else "empty-slot"
+        card_class_2 = "filled-slot" if p2 != "---" else "empty-slot"
+        
+        grid_html += f"<div class='team-card'><div class='team-label'>Team {i}</div><div class='player-row {card_class}'>{p1}</div><div style='border-top: 1px solid #374151; width: 20%; margin: 8px auto;'></div><div class='player-row {card_class_2}'>{p2}</div></div>"
+        
+    grid_html += "</div></div>"
+    
+    # Render the entire scrolling grid natively
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+    # ADMIN
+    st.markdown("---")
+    with st.expander("Tournament Director"):
+        admin_pass = st.text_input("Passcode", type="password")
         if admin_pass == "noral2026":
-            colA, colB = st.columns(2)
-            
-            with colA:
-                if state["status"] == "open":
-                    if st.button("Lock Field & Generate Pairings"):
-                        # Execute pairing logic from the unified pool
-                        pool = state["players"].copy()
-                        random.shuffle(pool) # Baseline randomization
-                        
-                        # Distribute into 20 teams of 2
-                        new_teams = {str(i): [] for i in range(1, 21)}
-                        team_index = 1
-                        for player in pool:
-                            new_teams[str(team_index)].append(player)
-                            if len(new_teams[str(team_index)]) == 2:
-                                team_index += 1
-                                
-                        state["teams"] = new_teams
-                        state["status"] = "paired"
-                        st.rerun()
-                else:
-                    st.info("Field is locked and paired.")
-                    
-            with colB:
-                if st.button("Factory Reset (Clear All Data)", type="primary"):
-                    state["players"] = []
-                    state["teams"] = {}
-                    state["status"] = "open"
-                    st.rerun()
+            if st.button("Reset Entire Field"):
+                live_data.update({str(i): [] for i in range(1, 21)})
+                st.rerun()
+
+    time.sleep(5)
+    st.rerun()
