@@ -2,8 +2,13 @@ import streamlit as st
 import time
 
 # --- CONFIGURATION & STYLING ---
-st.set_page_config(page_title="NorAL Golf Invitational", layout="wide")
+st.set_page_config(
+    page_title="NorAL Golf Invitational",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
+# Core UI CSS and Kiosk Overrides
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&display=swap');
@@ -80,11 +85,12 @@ st.markdown("""
     .stButton>button { background-color: #059669; color: white; font-weight: 700; border-radius: 4px; border: none; width: 100%; height: 3.5em; text-transform: uppercase; letter-spacing: 2px; }
     .stProgress > div > div > div > div { background-color: #059669; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- DATA MANAGEMENT ---
 @st.cache_resource
 def get_tournament_data():
+    """Initializes and persists the 20-team roster framework across sessions."""
     return {str(i): [] for i in range(1, 21)} 
 
 live_data = get_tournament_data()
@@ -92,6 +98,7 @@ live_data = get_tournament_data()
 # --- FRAGMENTED DASHBOARD LOOP ---
 @st.fragment(run_every=3)
 def display_dashboard():
+    """Renders the 5x4 grid and manages the 3-second silent refresh cycle."""
     # Progress Bar Calculations
     total_players = sum(len(names) for names in live_data.values())
     st.markdown(f"<p style='text-align:center; color:#9ca3af; font-size:0.75em; letter-spacing:2px; margin-bottom:5px;'>FIELD STATUS: {total_players} / 40 REGISTERED</p>", unsafe_allow_html=True)
@@ -105,7 +112,7 @@ def display_dashboard():
         del st.session_state['latest_time']
         highlight_team = None
 
-    # Render Grid
+    # Render Grid Natively via CSS/HTML
     grid_html = "<div class='grid-container'>"
     for i in range(1, 21):
         members = live_data[str(i)]
@@ -117,6 +124,7 @@ def display_dashboard():
         
         box_class = "team-card highlight" if str(i) == highlight_team else "team-card"
         
+        # Using multi-line string mapping to prevent string concatenation breaks
         grid_html += f"""
         <div class='{box_class}'>
             <div class='team-label'>Team {i}</div>
@@ -136,8 +144,8 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-params = st.query_params
-team_id = params.get("team_id")
+# Safely extract routing parameters
+team_id = st.query_params.get("team_id")
 
 if team_id:
     # --- REGISTRATION VIEW (Mobile) ---
@@ -159,4 +167,30 @@ if team_id:
             
             if not name_entry:
                 st.error("Please enter a name.")
-            elif name_entry.
+            elif name_entry.lower() in all_names:
+                st.error(f"'{name_entry}' is already registered in the field!")
+            else:
+                live_data[str(team_id)].append(name_entry.strip())
+                st.session_state.update({
+                    'latest_team': str(team_id), 
+                    'latest_time': time.time()
+                })
+                st.success("Registration Successful!")
+                time.sleep(1.5)
+                st.query_params.clear()
+                st.rerun()
+
+else:
+    # --- DASHBOARD VIEW (Big Screen) ---
+    display_dashboard()
+    
+    # --- ADMIN CONTROLS ---
+    st.markdown("---")
+    with st.expander("Tournament Director"):
+        admin_pass = st.text_input("Passcode", type="password")
+        if admin_pass == "noral2026":
+            if st.button("Reset Entire Field"):
+                live_data.update({str(i): [] for i in range(1, 21)})
+                st.success("Field has been reset.")
+                time.sleep(1)
+                st.rerun()
