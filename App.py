@@ -83,16 +83,20 @@ st.markdown("""
     
     /* --- CSS SCROLL ANIMATION CLASSES --- */
     .scroll-window {
-        height: 65vh; /* Viewport height for the scrolling area */
+        height: 65vh; 
         overflow: hidden; 
         position: relative;
-        /* Adds a fading effect at the top and bottom of the scroll list */
         mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
         -webkit-mask-image: linear-gradient(to bottom, transparent, black 2%, black 98%, transparent);
     }
     .scroll-track {
         display: flex;
         flex-direction: column;
+        animation: scrollPingPong 35s linear infinite alternate;
+    }
+    @keyframes scrollPingPong {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(calc(-100% + 65vh)); } 
     }
     </style>
     """, unsafe_allow_html=True)
@@ -183,29 +187,8 @@ else:
             del st.session_state['latest_time']
 
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 2. SEAMLESS NATIVE CSS SCROLLING CALCULATION
-    # Adjust this value to speed up or slow down the scrolling (in seconds)
-    scroll_duration_one_way = 35  
-    
-    current_timestamp = time.time()
-    total_loop_time = scroll_duration_one_way * 2
-    elapsed_in_loop = current_timestamp % total_loop_time
-    
-    st.markdown(f"""
-        <style>
-        .scroll-track {{
-            animation: scrollPingPong {scroll_duration_one_way}s linear infinite alternate;
-            animation-delay: -{elapsed_in_loop}s; /* Instantly catches up to where it should be after a rerun */
-        }}
-        @keyframes scrollPingPong {{
-            0% {{ transform: translateY(0); }}
-            100% {{ transform: translateY(calc(-100% + 65vh)); }} 
-        }}
-        </style>
-    """, unsafe_allow_html=True)
 
-    # 3. BUILD THE GRID HTML AS A SINGLE BLOCK
+    # 2. BUILD THE GRID HTML AS A SINGLE STATIC BLOCK
     grid_html = "<div class='scroll-window'><div class='scroll-track'>"
     
     for i in range(1, 21):
@@ -213,7 +196,6 @@ else:
         p1 = members[0] if len(members) > 0 else "---"
         p2 = members[1] if len(members) > 1 else "---"
         
-        # Flattened HTML to prevent Markdown code block detection
         card_class = "filled-slot" if p1 != "---" else "empty-slot"
         card_class_2 = "filled-slot" if p2 != "---" else "empty-slot"
         
@@ -221,7 +203,7 @@ else:
         
     grid_html += "</div></div>"
     
-    # Render the entire scrolling grid natively
+    # Render the scrolling grid natively
     st.markdown(grid_html, unsafe_allow_html=True)
 
     # ADMIN
@@ -233,5 +215,6 @@ else:
                 live_data.update({str(i): [] for i in range(1, 21)})
                 st.rerun()
 
+    # The loop safely continues polling without breaking the CSS
     time.sleep(5)
     st.rerun()
